@@ -1,4 +1,5 @@
 import { useState, useRef } from "react"
+import { saveGeneration } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -34,6 +35,12 @@ export default function VideoPage() {
     setTimeout(() => {
       setIsGenerating(false)
       setGenerated(true)
+      saveGeneration({
+        type: "video",
+        title: description ? description.slice(0, 80) : "Видеоролик",
+        prompt: description,
+        duration: duration[0],
+      })
     }, 3000)
   }
 

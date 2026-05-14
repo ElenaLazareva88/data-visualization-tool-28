@@ -1,4 +1,5 @@
 import { useState, useRef } from "react"
+import { saveGeneration } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
@@ -31,7 +32,15 @@ export default function PhotoPage() {
 
   const handleGenerate = () => {
     setIsGenerating(true)
-    setTimeout(() => { setIsGenerating(false); setGenerated(true) }, 2000)
+    setTimeout(() => {
+      setIsGenerating(false)
+      setGenerated(true)
+      saveGeneration({
+        type: "photo",
+        title: generateDesc ? generateDesc.slice(0, 80) : "Изображение",
+        prompt: generateDesc,
+      })
+    }, 2000)
   }
 
   const tools = [

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { saveGeneration } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -54,7 +55,16 @@ export default function JinglePage() {
 
   const handleGenerate = () => {
     setIsGenerating(true)
-    setTimeout(() => { setIsGenerating(false); setGenerated(true) }, 2500)
+    setTimeout(() => {
+      setIsGenerating(false)
+      setGenerated(true)
+      saveGeneration({
+        type: "jingle",
+        title: [genre, mood].filter(Boolean).join(" · ") || "Джингл",
+        prompt: [genre, mood, jingleType].filter(Boolean).join(", "),
+        duration: parseInt(duration.split("-")[1] || "10"),
+      })
+    }, 2500)
   }
 
   return (

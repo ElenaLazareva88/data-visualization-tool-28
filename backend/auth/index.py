@@ -359,6 +359,42 @@ def handler(event: dict, context) -> dict:
                 "isBase64Encoded": False,
             }
 
+        # POST /auth/generation — сохранить запись в историю генераций
+        elif method == "POST" and "/generation" in path:
+            token = get_token_from_event(event)
+            if not token:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
+
+            row = get_user_by_token(cur, token)
+            if not row:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Сессия истекла"}), "isBase64Encoded": False}
+
+            uid = row[0]
+            gen_type = body.get("type", "")
+            if gen_type not in ("music", "jingle", "video", "photo", "text"):
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "Неверный тип"}), "isBase64Encoded": False}
+
+            title = body.get("title", "") or ""
+            prompt_text = body.get("prompt", "") or ""
+            result_url = body.get("result_url", "") or ""
+            preview_url = body.get("preview_url", "") or ""
+            duration = body.get("duration")
+
+            cur.execute(
+                f"INSERT INTO {q('user_generations')} (user_id, type, title, prompt, result_url, preview_url, duration, status) "
+                f"VALUES (%s, %s, %s, %s, %s, %s, %s, 'done') RETURNING id",
+                (uid, gen_type, title, prompt_text, result_url, preview_url, duration)
+            )
+            gen_id = cur.fetchone()[0]
+            conn.commit()
+
+            return {
+                "statusCode": 200,
+                "headers": cors_headers(),
+                "body": json.dumps({"ok": True, "id": gen_id}),
+                "isBase64Encoded": False,
+            }
+
         else:
             return {"statusCode": 404, "headers": cors_headers(), "body": json.dumps({"error": "Not found"}), "isBase64Encoded": False}
 

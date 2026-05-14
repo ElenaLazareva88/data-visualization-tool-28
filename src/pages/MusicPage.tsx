@@ -1,4 +1,5 @@
 import { useState, useRef } from "react"
+import { saveGeneration } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -33,6 +34,11 @@ export default function MusicPage() {
     setTimeout(() => {
       setIsGenerating(false)
       setGenerated(true)
+      saveGeneration({
+        type: "music",
+        title: description ? description.slice(0, 80) : "Музыкальный трек",
+        prompt: description,
+      })
     }, 2500)
   }
 

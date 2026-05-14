@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { saveGeneration } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -26,6 +27,11 @@ export default function TextPage() {
     setTimeout(() => {
       setIsGenerating(false)
       setGeneratedText(`Здесь появится ваш сгенерированный текст на тему "${prompt}". Тип: ${textType || "не выбран"}, Тон: ${tone || "нейтральный"}, Длина: ~${length[0]} слов.\n\nИИ создаст уникальный, качественный текст точно по вашему запросу. Вы сможете редактировать его прямо здесь — изменять, дополнять, улучшать.`)
+      saveGeneration({
+        type: "text",
+        title: prompt ? prompt.slice(0, 80) : textType || "Текст",
+        prompt: [prompt, textType, tone].filter(Boolean).join(" · "),
+      })
     }, 2000)
   }
 

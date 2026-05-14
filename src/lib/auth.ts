@@ -45,3 +45,20 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   if (token) headers["Authorization"] = `Bearer ${token}`
   return fetch(url, { ...options, headers: { ...headers, ...(options.headers as Record<string, string> || {}) } })
 }
+
+export async function saveGeneration(data: {
+  type: "music" | "jingle" | "video" | "photo" | "text"
+  title?: string
+  prompt?: string
+  result_url?: string
+  preview_url?: string
+  duration?: number
+}) {
+  const token = getToken()
+  if (!token) return
+  fetch(`${AUTH_URL}/generation`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).catch(() => {})
+}
