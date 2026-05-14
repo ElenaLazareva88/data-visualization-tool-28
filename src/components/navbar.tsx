@@ -58,6 +58,13 @@ function UserAvatar({ user, onLogout }: { user: User; onLogout: () => void }) {
             <p className="text-white text-sm font-medium truncate">{user.name || "Пользователь"}</p>
             <p className="text-muted-foreground text-xs truncate">{user.email}</p>
           </div>
+          <button
+            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-white hover:text-red-500 hover:bg-red-500/10 transition-colors"
+            onClick={() => { setOpen(false); navigate("/profile") }}
+          >
+            <Icon name="User" size={14} className="text-red-500" />
+            Мой профиль
+          </button>
           {isAdmin(user) && (
             <button
               className="flex items-center gap-2 w-full px-4 py-2 text-sm text-white hover:text-red-500 hover:bg-red-500/10 transition-colors"

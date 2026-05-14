@@ -1,5 +1,5 @@
 """
-Аутентификация: регистрация, вход, выход, получение текущего пользователя.
+Аутентификация: регистрация, вход, выход, профиль, история генераций.
 """
 import json
 import os
@@ -10,6 +10,21 @@ from datetime import datetime, timedelta
 import psycopg2
 
 SCHEMA = os.environ.get("MAIN_DB_SCHEMA", "public")
+
+SUBSCRIPTION_LABELS = {
+    "free": "Бесплатный",
+    "starter": "Стартер",
+    "pro": "Профессионал",
+    "business": "Бизнес",
+}
+
+TYPE_LABELS = {
+    "music": "Музыка",
+    "jingle": "Джингл",
+    "video": "Видео",
+    "photo": "Фото",
+    "text": "Текст",
+}
 
 
 def get_db():
@@ -43,8 +58,23 @@ def cors_headers():
     }
 
 
+def get_token_from_event(event: dict) -> str:
+    auth_header = event.get("headers", {}).get("X-Authorization", "")
+    return auth_header.replace("Bearer ", "").strip()
+
+
+def get_user_by_token(cur, token: str):
+    cur.execute(
+        f"SELECT u.id, u.email, u.name, u.role, u.status, u.subscription, u.subscription_expires_at, u.created_at "
+        f"FROM {q('user_sessions')} s JOIN {q('users')} u ON s.user_id = u.id "
+        f"WHERE s.token = %s AND s.expires_at > NOW()",
+        (token,)
+    )
+    return cur.fetchone()
+
+
 def handler(event: dict, context) -> dict:
-    """Регистрация, вход, выход, профиль пользователя"""
+    """Регистрация, вход, выход, профиль, история генераций пользователя"""
     if event.get("httpMethod") == "OPTIONS":
         return {"statusCode": 200, "headers": cors_headers(), "body": "", "isBase64Encoded": False}
 
@@ -137,20 +167,15 @@ def handler(event: dict, context) -> dict:
 
         # GET /auth/me
         elif method == "GET" and "/me" in path:
-            auth_header = event.get("headers", {}).get("X-Authorization", "")
-            token = auth_header.replace("Bearer ", "").strip()
+            token = get_token_from_event(event)
             if not token:
                 return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Токен не передан"}), "isBase64Encoded": False}
 
-            cur.execute(
-                f"SELECT u.id, u.email, u.name, u.role, u.status, u.subscription, u.created_at FROM {q('user_sessions')} s JOIN {q('users')} u ON s.user_id = u.id WHERE s.token = %s AND s.expires_at > NOW()",
-                (token,)
-            )
-            row = cur.fetchone()
+            row = get_user_by_token(cur, token)
             if not row:
                 return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Сессия истекла"}), "isBase64Encoded": False}
 
-            uid, email, name, role, status, sub, created = row
+            uid, email, name, role, status, sub, sub_expires, created = row
             return {
                 "statusCode": 200,
                 "headers": cors_headers(),
@@ -160,12 +185,179 @@ def handler(event: dict, context) -> dict:
 
         # POST /auth/logout
         elif method == "POST" and "/logout" in path:
-            auth_header = event.get("headers", {}).get("X-Authorization", "")
-            token = auth_header.replace("Bearer ", "").strip()
+            token = get_token_from_event(event)
             if token:
                 cur.execute(f"UPDATE {q('user_sessions')} SET expires_at = NOW() WHERE token = %s", (token,))
                 conn.commit()
             return {"statusCode": 200, "headers": cors_headers(), "body": json.dumps({"ok": True}), "isBase64Encoded": False}
+
+        # GET /auth/profile — полный профиль с подпиской
+        elif method == "GET" and "/profile" in path:
+            token = get_token_from_event(event)
+            if not token:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
+
+            row = get_user_by_token(cur, token)
+            if not row:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Сессия истекла"}), "isBase64Encoded": False}
+
+            uid, email, name, role, status, sub, sub_expires, created = row
+
+            # Считаем количество генераций по типам
+            cur.execute(
+                f"SELECT type, COUNT(*) FROM {q('user_generations')} WHERE user_id = %s GROUP BY type",
+                (uid,)
+            )
+            counts = {r[0]: r[1] for r in cur.fetchall()}
+
+            sub_label = SUBSCRIPTION_LABELS.get(sub or "free", sub or "free")
+
+            return {
+                "statusCode": 200,
+                "headers": cors_headers(),
+                "body": json.dumps({
+                    "id": uid,
+                    "email": email,
+                    "name": name or "",
+                    "role": role,
+                    "subscription": sub or "free",
+                    "subscription_label": sub_label,
+                    "subscription_expires_at": str(sub_expires) if sub_expires else None,
+                    "created_at": str(created),
+                    "generation_counts": counts,
+                }),
+                "isBase64Encoded": False,
+            }
+
+        # PUT /auth/profile — обновление имени и email
+        elif method == "PUT" and "/profile" in path:
+            token = get_token_from_event(event)
+            if not token:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
+
+            row = get_user_by_token(cur, token)
+            if not row:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Сессия истекла"}), "isBase64Encoded": False}
+
+            uid = row[0]
+            new_name = body.get("name", "").strip()
+            new_email = body.get("email", "").strip().lower()
+
+            if not new_email:
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "Email обязателен"}), "isBase64Encoded": False}
+
+            # Проверяем, не занят ли email другим пользователем
+            cur.execute(f"SELECT id FROM {q('users')} WHERE email = %s AND id != %s", (new_email, uid))
+            if cur.fetchone():
+                return {"statusCode": 409, "headers": cors_headers(), "body": json.dumps({"error": "Email уже используется"}), "isBase64Encoded": False}
+
+            cur.execute(
+                f"UPDATE {q('users')} SET name = %s, email = %s, updated_at = NOW() WHERE id = %s",
+                (new_name, new_email, uid)
+            )
+            conn.commit()
+
+            return {
+                "statusCode": 200,
+                "headers": cors_headers(),
+                "body": json.dumps({"ok": True, "name": new_name, "email": new_email}),
+                "isBase64Encoded": False,
+            }
+
+        # PUT /auth/password — смена пароля
+        elif method == "PUT" and "/password" in path:
+            token = get_token_from_event(event)
+            if not token:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
+
+            row = get_user_by_token(cur, token)
+            if not row:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Сессия истекла"}), "isBase64Encoded": False}
+
+            uid = row[0]
+            current_password = body.get("current_password", "")
+            new_password = body.get("new_password", "")
+
+            if not current_password or not new_password:
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "Укажите текущий и новый пароль"}), "isBase64Encoded": False}
+
+            if len(new_password) < 6:
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "Пароль должен быть не менее 6 символов"}), "isBase64Encoded": False}
+
+            cur.execute(f"SELECT password_hash FROM {q('users')} WHERE id = %s", (uid,))
+            pw_hash = cur.fetchone()[0]
+
+            if not verify_password(current_password, pw_hash):
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Неверный текущий пароль"}), "isBase64Encoded": False}
+
+            new_hash = hash_password(new_password)
+            cur.execute(f"UPDATE {q('users')} SET password_hash = %s, updated_at = NOW() WHERE id = %s", (new_hash, uid))
+            conn.commit()
+
+            return {
+                "statusCode": 200,
+                "headers": cors_headers(),
+                "body": json.dumps({"ok": True}),
+                "isBase64Encoded": False,
+            }
+
+        # GET /auth/history — история генераций
+        elif method == "GET" and "/history" in path:
+            token = get_token_from_event(event)
+            if not token:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
+
+            row = get_user_by_token(cur, token)
+            if not row:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Сессия истекла"}), "isBase64Encoded": False}
+
+            uid = row[0]
+
+            params = event.get("queryStringParameters") or {}
+            filter_type = params.get("type", "")
+            limit = min(int(params.get("limit", 50)), 100)
+            offset = int(params.get("offset", 0))
+
+            if filter_type and filter_type in TYPE_LABELS:
+                cur.execute(
+                    f"SELECT id, type, title, prompt, result_url, preview_url, duration, status, created_at "
+                    f"FROM {q('user_generations')} WHERE user_id = %s AND type = %s "
+                    f"ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                    (uid, filter_type, limit, offset)
+                )
+            else:
+                cur.execute(
+                    f"SELECT id, type, title, prompt, result_url, preview_url, duration, status, created_at "
+                    f"FROM {q('user_generations')} WHERE user_id = %s "
+                    f"ORDER BY created_at DESC LIMIT %s OFFSET %s",
+                    (uid, limit, offset)
+                )
+
+            rows = cur.fetchall()
+            items = []
+            for r in rows:
+                items.append({
+                    "id": r[0],
+                    "type": r[1],
+                    "type_label": TYPE_LABELS.get(r[1], r[1]),
+                    "title": r[2] or "",
+                    "prompt": r[3] or "",
+                    "result_url": r[4] or "",
+                    "preview_url": r[5] or "",
+                    "duration": r[6],
+                    "status": r[7],
+                    "created_at": str(r[8]),
+                })
+
+            cur.execute(f"SELECT COUNT(*) FROM {q('user_generations')} WHERE user_id = %s", (uid,))
+            total = cur.fetchone()[0]
+
+            return {
+                "statusCode": 200,
+                "headers": cors_headers(),
+                "body": json.dumps({"items": items, "total": total}),
+                "isBase64Encoded": False,
+            }
 
         else:
             return {"statusCode": 404, "headers": cors_headers(), "body": json.dumps({"error": "Not found"}), "isBase64Encoded": False}
