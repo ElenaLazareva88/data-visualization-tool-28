@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import Icon from "@/components/ui/icon"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { AuthModal } from "@/components/auth-modal"
+import { getUser, clearAuth, isAdmin, getToken, AUTH_URL, type User } from "@/lib/auth"
 
 const TOOLS = [
   { label: "Музыка", path: "/music", icon: "Music" },
@@ -21,11 +22,111 @@ const NAV_LINKS = [
   { label: "Поддержка", path: "/support" },
 ]
 
+function UserAvatar({ user, onLogout }: { user: User; onLogout: () => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  const initials = (user.name || user.email).charAt(0).toUpperCase()
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+      >
+        <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">
+          {initials}
+        </div>
+        <span className="text-white text-sm hidden xl:block max-w-[120px] truncate">
+          {user.name || user.email}
+        </span>
+        <Icon name="ChevronDown" size={14} className="text-muted-foreground" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 bg-black/98 border border-red-500/20 rounded-lg py-1 min-w-[180px] shadow-xl z-50">
+          <div className="px-4 py-2 border-b border-red-500/20">
+            <p className="text-white text-sm font-medium truncate">{user.name || "Пользователь"}</p>
+            <p className="text-muted-foreground text-xs truncate">{user.email}</p>
+          </div>
+          {isAdmin(user) && (
+            <button
+              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-white hover:text-red-500 hover:bg-red-500/10 transition-colors"
+              onClick={() => { setOpen(false); navigate("/admin") }}
+            >
+              <Icon name="Shield" size={14} className="text-red-500" />
+              Панель администратора
+            </button>
+          )}
+          <button
+            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-white hover:text-red-500 hover:bg-red-500/10 transition-colors"
+            onClick={() => { setOpen(false); navigate("/pricing") }}
+          >
+            <Icon name="CreditCard" size={14} className="text-red-500" />
+            Моя подписка
+          </button>
+          <div className="border-t border-red-500/20 mt-1 pt-1">
+            <button
+              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              onClick={onLogout}
+            >
+              <Icon name="LogOut" size={14} />
+              Выйти
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
+  const [authTab, setAuthTab] = useState<"login" | "register">("login")
+  const [user, setUser] = useState<User | null>(getUser())
   const location = useLocation()
+  const navigate = useNavigate()
+
+  // Обновляем состояние пользователя при изменении localStorage
+  useEffect(() => {
+    const sync = () => setUser(getUser())
+    window.addEventListener("storage", sync)
+    // Также проверяем при каждом изменении пути
+    sync()
+    return () => window.removeEventListener("storage", sync)
+  }, [location.pathname])
+
+  const openLogin = () => { setAuthTab("login"); setAuthOpen(true) }
+  const openRegister = () => { setAuthTab("register"); setAuthOpen(true) }
+
+  const handleLogout = async () => {
+    const token = getToken()
+    if (token) {
+      fetch(`${AUTH_URL}/logout`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      }).catch(() => {})
+    }
+    clearAuth()
+    setUser(null)
+    navigate("/")
+  }
+
+  const handleAuthClose = (open: boolean) => {
+    setAuthOpen(open)
+    if (!open) setUser(getUser())
+  }
 
   return (
     <>
@@ -82,21 +183,27 @@ export function Navbar() {
               ))}
             </div>
 
-            {/* CTA Button */}
+            {/* CTA / User */}
             <div className="hidden lg:flex items-center gap-3">
-              <Button
-                variant="ghost"
-                className="text-white hover:text-red-500 font-geist"
-                onClick={() => setAuthOpen(true)}
-              >
-                Войти
-              </Button>
-              <Button
-                className="bg-red-500 hover:bg-red-600 text-white font-geist border-0"
-                onClick={() => setAuthOpen(true)}
-              >
-                Начать бесплатно
-              </Button>
+              {user ? (
+                <UserAvatar user={user} onLogout={handleLogout} />
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    className="text-white hover:text-red-500 font-geist"
+                    onClick={openLogin}
+                  >
+                    Войти
+                  </Button>
+                  <Button
+                    className="bg-red-500 hover:bg-red-600 text-white font-geist border-0"
+                    onClick={openRegister}
+                  >
+                    Начать бесплатно
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -138,20 +245,54 @@ export function Navbar() {
                     </Link>
                   ))}
                 </div>
-                <div className="px-3 py-2 flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    className="w-full border-border text-white font-geist bg-transparent"
-                    onClick={() => { setAuthOpen(true); setIsOpen(false) }}
-                  >
-                    Войти
-                  </Button>
-                  <Button
-                    className="w-full bg-red-500 hover:bg-red-600 text-white font-geist border-0"
-                    onClick={() => { setAuthOpen(true); setIsOpen(false) }}
-                  >
-                    Начать бесплатно
-                  </Button>
+                <div className="px-3 py-2 border-t border-red-500/20 mt-2">
+                  {user ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 py-2">
+                        <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          {(user.name || user.email).charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-white text-sm truncate">{user.name || "Пользователь"}</p>
+                          <p className="text-muted-foreground text-xs truncate">{user.email}</p>
+                        </div>
+                      </div>
+                      {isAdmin(user) && (
+                        <Link
+                          to="/admin"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-white hover:text-red-500"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <Icon name="Shield" size={14} className="text-red-500" />
+                          Панель администратора
+                        </Link>
+                      )}
+                      <Button
+                        variant="outline"
+                        className="w-full border-border text-white font-geist bg-transparent"
+                        onClick={() => { handleLogout(); setIsOpen(false) }}
+                      >
+                        <Icon name="LogOut" size={14} className="mr-2" />
+                        Выйти
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full border-border text-white font-geist bg-transparent"
+                        onClick={() => { openLogin(); setIsOpen(false) }}
+                      >
+                        Войти
+                      </Button>
+                      <Button
+                        className="w-full bg-red-500 hover:bg-red-600 text-white font-geist border-0"
+                        onClick={() => { openRegister(); setIsOpen(false) }}
+                      >
+                        Начать бесплатно
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -159,7 +300,7 @@ export function Navbar() {
         </div>
       </nav>
 
-      <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
+      <AuthModal open={authOpen} onOpenChange={handleAuthClose} defaultTab={authTab} />
     </>
   )
 }

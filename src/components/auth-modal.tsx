@@ -1,41 +1,90 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
 import Icon from "@/components/ui/icon"
+import { AUTH_URL, saveAuth } from "@/lib/auth"
 
 interface AuthModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  defaultTab?: "login" | "register"
 }
 
-export function AuthModal({ open, onOpenChange }: AuthModalProps) {
+export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModalProps) {
+  const navigate = useNavigate()
   const [loginData, setLoginData] = useState({ email: "", password: "" })
-  const [registerData, setRegisterData] = useState({ name: "", email: "", phone: "", password: "", confirm: "" })
+  const [registerData, setRegisterData] = useState({ name: "", email: "", password: "", confirm: "" })
   const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("login")
+  const [loginError, setLoginError] = useState("")
+  const [registerError, setRegisterError] = useState("")
+  const [activeTab, setActiveTab] = useState(defaultTab)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoginError("")
     setIsLoading(true)
-    setTimeout(() => { setIsLoading(false); onOpenChange(false) }, 1200)
+    try {
+      const res = await fetch(`${AUTH_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginData.email, password: loginData.password }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setLoginError(data.error || "Неверный email или пароль")
+        return
+      }
+      saveAuth(data.token, data.user)
+      onOpenChange(false)
+      if (data.user.role === "owner" || data.user.role === "admin") {
+        navigate("/admin")
+      }
+    } catch {
+      setLoginError("Ошибка подключения к серверу")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    setRegisterError("")
+    if (registerData.password !== registerData.confirm) {
+      setRegisterError("Пароли не совпадают")
+      return
+    }
+    if (registerData.password.length < 6) {
+      setRegisterError("Пароль должен быть не менее 6 символов")
+      return
+    }
     setIsLoading(true)
-    setTimeout(() => { setIsLoading(false); onOpenChange(false) }, 1200)
+    try {
+      const res = await fetch(`${AUTH_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: registerData.email,
+          password: registerData.password,
+          name: registerData.name,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setRegisterError(data.error || "Ошибка регистрации")
+        return
+      }
+      saveAuth(data.token, data.user)
+      onOpenChange(false)
+    } catch {
+      setRegisterError("Ошибка подключения к серверу")
+    } finally {
+      setIsLoading(false)
+    }
   }
-
-  const socialButtons = [
-    { label: "Google", icon: "Globe", color: "hover:border-blue-500" },
-    { label: "ВКонтакте", icon: "Users", color: "hover:border-blue-400" },
-    { label: "Яндекс", icon: "Search", color: "hover:border-yellow-500" },
-    { label: "Mail.ru", icon: "Mail", color: "hover:border-orange-500" },
-  ]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,7 +98,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as "login" | "register"); setLoginError(""); setRegisterError("") }} className="mt-2">
           <TabsList className="w-full bg-background border border-border">
             <TabsTrigger value="login" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground">
               Вход
@@ -63,21 +112,19 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           <TabsContent value="login" className="mt-4">
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <Label className="text-muted-foreground text-sm mb-1.5 block">Email или телефон</Label>
+                <Label className="text-muted-foreground text-sm mb-1.5 block">Email</Label>
                 <Input
-                  type="text"
+                  type="email"
                   placeholder="example@mail.ru"
                   value={loginData.email}
                   onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                   className="bg-background border-border text-white placeholder:text-muted-foreground"
                   required
+                  autoFocus
                 />
               </div>
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Label className="text-muted-foreground text-sm">Пароль</Label>
-                  <button type="button" className="text-primary text-xs hover:underline">Забыли пароль?</button>
-                </div>
+                <Label className="text-muted-foreground text-sm mb-1.5 block">Пароль</Label>
                 <Input
                   type="password"
                   placeholder="••••••••"
@@ -87,6 +134,14 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   required
                 />
               </div>
+
+              {loginError && (
+                <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  <Icon name="AlertCircle" size={14} />
+                  {loginError}
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-white"
@@ -97,27 +152,6 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                 ) : "Войти"}
               </Button>
             </form>
-
-            <div className="mt-4">
-              <div className="relative">
-                <Separator className="bg-border" />
-                <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-card px-2 text-muted-foreground text-xs">или войти через</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {socialButtons.map((s) => (
-                  <Button
-                    key={s.label}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={`border-border text-white bg-transparent ${s.color} transition-colors`}
-                  >
-                    <Icon name={s.icon as "Globe"} size={14} className="mr-2" />
-                    {s.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
 
             <p className="text-center text-muted-foreground text-sm mt-4">
               Нет аккаунта?{" "}
@@ -138,7 +172,6 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   value={registerData.name}
                   onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
                   className="bg-background border-border text-white placeholder:text-muted-foreground"
-                  required
                 />
               </div>
               <div>
@@ -153,20 +186,10 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                 />
               </div>
               <div>
-                <Label className="text-muted-foreground text-sm mb-1.5 block">Телефон</Label>
-                <Input
-                  type="tel"
-                  placeholder="+7 (999) 000-00-00"
-                  value={registerData.phone}
-                  onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
-                  className="bg-background border-border text-white placeholder:text-muted-foreground"
-                />
-              </div>
-              <div>
                 <Label className="text-muted-foreground text-sm mb-1.5 block">Пароль</Label>
                 <Input
                   type="password"
-                  placeholder="Минимум 8 символов"
+                  placeholder="Минимум 6 символов"
                   value={registerData.password}
                   onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
                   className="bg-background border-border text-white placeholder:text-muted-foreground"
@@ -184,40 +207,32 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                   required
                 />
               </div>
+
+              {registerError && (
+                <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  <Icon name="AlertCircle" size={14} />
+                  {registerError}
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 text-white mt-1"
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Регистрируем...</>
-                ) : "Создать аккаунт"}
+                  <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Создаём аккаунт...</>
+                ) : "Зарегистрироваться"}
               </Button>
-              <p className="text-muted-foreground text-xs text-center">
-                Регистрируясь, вы принимаете{" "}
-                <a href="#" className="text-primary hover:underline">условия использования</a>
-              </p>
             </form>
 
-            <div className="mt-4">
-              <div className="relative">
-                <Separator className="bg-border" />
-                <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-card px-2 text-muted-foreground text-xs">или через</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {socialButtons.map((s) => (
-                  <Button
-                    key={s.label}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={`border-border text-white bg-transparent ${s.color} transition-colors`}
-                  >
-                    <Icon name={s.icon as "Globe"} size={14} className="mr-2" />
-                    {s.label}
-                  </Button>
-                ))}
-              </div>
+            <div className="mt-3 pt-3 border-t border-border text-center">
+              <p className="text-muted-foreground text-xs">
+                Уже есть аккаунт?{" "}
+                <button type="button" className="text-primary hover:underline" onClick={() => setActiveTab("login")}>
+                  Войти
+                </button>
+              </p>
             </div>
           </TabsContent>
         </Tabs>
