@@ -34,6 +34,7 @@ import ProfilePage from "./pages/ProfilePage";
 import CookiePolicyPage from "./pages/CookiePolicyPage";
 import CookieBanner from "./components/CookieBanner";
 import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/cookie-policy" element={<CookiePolicyPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           {/* Admin panel */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
