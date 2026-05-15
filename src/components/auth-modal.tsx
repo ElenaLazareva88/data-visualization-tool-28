@@ -313,6 +313,14 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
                     >
                       Пользовательское соглашение
                     </button>
+                    {" "}и{" "}
+                    <button
+                      type="button"
+                      onClick={() => navigate("/privacy")}
+                      className="text-primary hover:underline"
+                    >
+                      Политику конфиденциальности
+                    </button>
                   </span>
                 </label>
                 {registerError && <ErrorBox text={registerError} />}
