@@ -253,7 +253,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
                     placeholder="Ваше имя"
                     value={registerData.name}
                     onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
-                    className="bg-background border-border text-white placeholder:text-muted-foreground"
+                    className="bg-white border-border text-black placeholder:text-gray-400"
                   />
                 </div>
                 <div>
@@ -263,7 +263,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
                     placeholder="example@mail.ru"
                     value={registerData.email}
                     onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                    className="bg-background border-border text-white placeholder:text-muted-foreground"
+                    className="bg-white border-border text-black placeholder:text-gray-400"
                     required
                   />
                 </div>
@@ -274,7 +274,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
                     placeholder="Минимум 6 символов"
                     value={registerData.password}
                     onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                    className="bg-background border-border text-white placeholder:text-muted-foreground"
+                    className="bg-white border-border text-black placeholder:text-gray-400"
                     required
                   />
                 </div>
@@ -285,7 +285,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
                     placeholder="Повторите пароль"
                     value={registerData.confirm}
                     onChange={(e) => setRegisterData({ ...registerData, confirm: e.target.value })}
-                    className="bg-background border-border text-white placeholder:text-muted-foreground"
+                    className="bg-white border-border text-black placeholder:text-gray-400"
                     required
                   />
                 </div>
