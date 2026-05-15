@@ -87,7 +87,8 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
       saveAuth(data.token, data.user)
       handleOpenChange(false)
       if (data.user.role === "owner" || data.user.role === "admin") navigate("/admin")
-    } catch {
+    } catch (err) {
+      console.error("Login error:", err)
       setLoginError("Ошибка подключения к серверу")
     } finally {
       setIsLoading(false)
@@ -111,7 +112,8 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
       if (!res.ok) { setRegisterError(data.error || "Ошибка регистрации"); return }
       saveAuth(data.token, data.user)
       handleOpenChange(false)
-    } catch {
+    } catch (err) {
+      console.error("Register error:", err)
       setRegisterError("Ошибка подключения к серверу")
     } finally {
       setIsLoading(false)
