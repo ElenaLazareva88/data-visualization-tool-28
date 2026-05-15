@@ -80,6 +80,7 @@ def handler(event: dict, context) -> dict:
 
     method = event.get("httpMethod", "GET")
     path = event.get("path", "/")
+    print(f"[DEBUG] method={method} path={path} body_raw={event.get('body', '')[:200]}")
     body = {}
     if event.get("body"):
         try:
