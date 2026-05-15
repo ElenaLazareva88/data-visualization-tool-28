@@ -88,8 +88,12 @@ def handler(event: dict, context) -> dict:
         except Exception:
             pass
 
-    conn = get_db()
-    cur = conn.cursor()
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+    except Exception as e:
+        print(f"[ERROR] DB connect failed: {e}")
+        return {"statusCode": 500, "headers": cors_headers(), "body": json.dumps({"error": "Ошибка подключения к базе данных"}), "isBase64Encoded": False}
 
     try:
         # POST /auth/login
