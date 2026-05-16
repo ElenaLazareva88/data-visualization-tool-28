@@ -593,6 +593,124 @@ def handler(event: dict, context) -> dict:
                 "isBase64Encoded": False,
             }
 
+        # GET /auth/vk — редирект на ВКонтакте OAuth
+        elif method == "GET" and "/vk" in path and "/callback" not in path:
+            client_id = os.environ.get("VK_CLIENT_ID", "")
+            params = urllib.parse.urlencode({
+                "client_id": client_id,
+                "redirect_uri": f"https://functions.poehali.dev/f53ec6b3-3efc-418d-a138-9d6235d3f56c/vk/callback",
+                "response_type": "code",
+                "scope": "email",
+                "v": "5.131",
+            })
+            redirect_url = f"https://oauth.vk.com/authorize?{params}"
+            return {
+                "statusCode": 302,
+                "headers": {**cors_headers(), "Location": redirect_url},
+                "body": "",
+                "isBase64Encoded": False,
+            }
+
+        # GET /auth/vk/callback — обработка кода от ВКонтакте
+        elif method == "GET" and "/vk/callback" in path:
+            params = event.get("queryStringParameters") or {}
+            code = params.get("code", "")
+
+            if not code:
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "Код не передан"}), "isBase64Encoded": False}
+
+            client_id = os.environ.get("VK_CLIENT_ID", "")
+            client_secret = os.environ.get("VK_CLIENT_SECRET", "")
+            redirect_uri = "https://functions.poehali.dev/f53ec6b3-3efc-418d-a138-9d6235d3f56c/vk/callback"
+
+            # Обмениваем code на access_token
+            token_params = urllib.parse.urlencode({
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "code": code,
+            })
+            req = urllib.request.Request(f"https://oauth.vk.com/access_token?{token_params}")
+            try:
+                with urllib.request.urlopen(req) as resp:
+                    token_json = json.loads(resp.read().decode())
+            except Exception as e:
+                print(f"[ERROR] VK token exchange failed: {e}")
+                return {"statusCode": 502, "headers": cors_headers(), "body": json.dumps({"error": "Ошибка получения токена ВК"}), "isBase64Encoded": False}
+
+            access_token = token_json.get("access_token", "")
+            vk_id = str(token_json.get("user_id", ""))
+            email = token_json.get("email", "")
+
+            if not access_token or not vk_id:
+                return {"statusCode": 502, "headers": cors_headers(), "body": json.dumps({"error": "Токен ВК не получен"}), "isBase64Encoded": False}
+
+            # Получаем имя пользователя
+            user_params = urllib.parse.urlencode({
+                "user_ids": vk_id,
+                "fields": "first_name,last_name",
+                "access_token": access_token,
+                "v": "5.131",
+            })
+            info_req = urllib.request.Request(f"https://api.vk.com/method/users.get?{user_params}")
+            try:
+                with urllib.request.urlopen(info_req) as resp:
+                    vk_info = json.loads(resp.read().decode())
+                vk_user = vk_info.get("response", [{}])[0]
+                name = f"{vk_user.get('first_name', '')} {vk_user.get('last_name', '')}".strip()
+            except Exception:
+                name = f"vk_{vk_id}"
+
+            SCHEMA_Q = os.environ.get("MAIN_DB_SCHEMA", "public")
+
+            # Ищем существующего пользователя по oauth или email
+            cur.execute(
+                f'SELECT id, email, name, role, status FROM "{SCHEMA_Q}".users WHERE oauth_provider = %s AND oauth_id = %s',
+                ("vk", vk_id)
+            )
+            row = cur.fetchone()
+
+            if not row and email:
+                cur.execute(f'SELECT id, email, name, role, status FROM "{SCHEMA_Q}".users WHERE email = %s', (email,))
+                row = cur.fetchone()
+                if row:
+                    cur.execute(
+                        f'UPDATE "{SCHEMA_Q}".users SET oauth_provider = %s, oauth_id = %s WHERE id = %s',
+                        ("vk", vk_id, row[0])
+                    )
+
+            if not row:
+                cur.execute(
+                    f'INSERT INTO "{SCHEMA_Q}".users (email, password_hash, name, role, status, oauth_provider, oauth_id) '
+                    f"VALUES (%s, %s, %s, 'user', 'active', %s, %s) RETURNING id, email, name, role, status",
+                    (email or f"vk_{vk_id}@oauth", "", name, "vk", vk_id)
+                )
+                row = cur.fetchone()
+
+            user_id, user_email, user_name, role, status = row
+
+            if status == "blocked":
+                return {"statusCode": 403, "headers": cors_headers(), "body": json.dumps({"error": "Аккаунт заблокирован"}), "isBase64Encoded": False}
+
+            session_token = secrets.token_urlsafe(48)
+            expires = datetime.utcnow() + timedelta(days=30)
+            cur.execute(
+                f'INSERT INTO "{SCHEMA_Q}".user_sessions (user_id, token, expires_at) VALUES (%s, %s, %s)',
+                (user_id, session_token, expires)
+            )
+            cur.execute(f'UPDATE "{SCHEMA_Q}".users SET last_login_at = NOW() WHERE id = %s', (user_id,))
+            conn.commit()
+
+            front_url = os.environ.get("FRONTEND_URL", "https://poehali.dev")
+            user_payload = urllib.parse.quote(json.dumps({"id": user_id, "email": user_email, "name": user_name, "role": role}))
+            redirect_to = f"{front_url}/auth/callback?token={session_token}&user={user_payload}"
+            return {
+                "statusCode": 302,
+                "headers": {**cors_headers(), "Location": redirect_to},
+                "body": "",
+                "isBase64Encoded": False,
+            }
+
         else:
             return {"statusCode": 404, "headers": cors_headers(), "body": json.dumps({"error": "Not found"}), "isBase64Encoded": False}
 
