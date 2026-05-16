@@ -10,6 +10,22 @@ import Icon from "@/components/ui/icon"
 import { AUTH_URL, saveAuth } from "@/lib/auth"
 import TermsModal from "@/components/TermsModal"
 
+const YANDEX_AUTH_URL = `${AUTH_URL}/yandex`
+
+function YandexButton() {
+  return (
+    <a
+      href={YANDEX_AUTH_URL}
+      className="flex items-center justify-center gap-2 w-full rounded-md border border-border bg-[#FC3F1D] hover:bg-[#e8381a] text-white text-sm font-medium py-2 transition-colors"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.706 2H11.13C7.645 2 5.5 3.887 5.5 7.04c0 2.74 1.3 4.257 3.747 5.832L5.5 22h3.47l3.882-9.558-.117-.073C10.64 10.95 9.47 9.8 9.47 7.24c0-1.83 1.077-2.89 3.16-2.89h1.076V22H17V2h-3.294z" fill="white"/>
+      </svg>
+      Войти через Яндекс
+    </a>
+  )
+}
+
 interface AuthModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -244,6 +260,14 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
                   {isLoading ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Входим...</> : "Войти"}
                 </Button>
               </form>
+              <div className="mt-4 space-y-2">
+                <div className="relative flex items-center gap-2">
+                  <div className="flex-1 border-t border-border" />
+                  <span className="text-muted-foreground text-xs">или войти через</span>
+                  <div className="flex-1 border-t border-border" />
+                </div>
+                <YandexButton />
+              </div>
               <p className="text-center text-muted-foreground text-sm mt-4">
                 Нет аккаунта?{" "}
                 <button className="text-primary hover:underline" onClick={() => setActiveTab("register")}>
@@ -328,6 +352,14 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
                   {isLoading ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Создаём аккаунт...</> : "Зарегистрироваться"}
                 </Button>
               </form>
+              <div className="mt-4 space-y-2">
+                <div className="relative flex items-center gap-2">
+                  <div className="flex-1 border-t border-border" />
+                  <span className="text-muted-foreground text-xs">или войти через</span>
+                  <div className="flex-1 border-t border-border" />
+                </div>
+                <YandexButton />
+              </div>
               <div className="mt-3 pt-3 border-t border-border text-center">
                 <p className="text-muted-foreground text-xs">
                   Уже есть аккаунт?{" "}

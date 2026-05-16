@@ -6,6 +6,13 @@
       "path": "/",
       "expectedStatus": 404,
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Yandex callback without code returns 400",
+      "method": "GET",
+      "path": "/yandex/callback",
+      "expectedStatus": 400,
+      "bodyMatcher": "partial"
     }
   ]
 }

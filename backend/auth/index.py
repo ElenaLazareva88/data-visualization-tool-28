@@ -1,5 +1,5 @@
 """
-Аутентификация: регистрация, вход, выход, профиль, история генераций.
+Аутентификация: регистрация, вход, выход, профиль, история генераций, OAuth Яндекс.
 """
 import json
 import os
@@ -8,6 +8,8 @@ import hashlib
 import hmac
 from datetime import datetime, timedelta
 import psycopg2
+import urllib.request
+import urllib.parse
 
 SCHEMA = os.environ.get("MAIN_DB_SCHEMA", "public")
 
@@ -470,6 +472,124 @@ def handler(event: dict, context) -> dict:
                 "statusCode": 200,
                 "headers": cors_headers(),
                 "body": json.dumps({"ok": True}),
+                "isBase64Encoded": False,
+            }
+
+        # GET /auth/yandex — редирект на Яндекс OAuth
+        elif method == "GET" and "/yandex" in path and "/callback" not in path:
+            client_id = os.environ.get("YANDEX_CLIENT_ID", "")
+            params = urllib.parse.urlencode({
+                "response_type": "code",
+                "client_id": client_id,
+            })
+            redirect_url = f"https://oauth.yandex.ru/authorize?{params}"
+            return {
+                "statusCode": 302,
+                "headers": {**cors_headers(), "Location": redirect_url},
+                "body": "",
+                "isBase64Encoded": False,
+            }
+
+        # GET /auth/yandex/callback — обработка кода от Яндекс
+        elif method == "GET" and "/yandex/callback" in path:
+            params = event.get("queryStringParameters") or {}
+            code = params.get("code", "")
+            redirect_origin = params.get("state", "")
+
+            if not code:
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "Код не передан"}), "isBase64Encoded": False}
+
+            client_id = os.environ.get("YANDEX_CLIENT_ID", "")
+            client_secret = os.environ.get("YANDEX_CLIENT_SECRET", "")
+
+            # Обмениваем code на access_token
+            token_data = urllib.parse.urlencode({
+                "grant_type": "authorization_code",
+                "code": code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+            }).encode()
+            req = urllib.request.Request("https://oauth.yandex.ru/token", data=token_data, method="POST")
+            try:
+                with urllib.request.urlopen(req) as resp:
+                    token_json = json.loads(resp.read().decode())
+            except Exception as e:
+                print(f"[ERROR] Yandex token exchange failed: {e}")
+                return {"statusCode": 502, "headers": cors_headers(), "body": json.dumps({"error": "Ошибка получения токена Яндекс"}), "isBase64Encoded": False}
+
+            access_token = token_json.get("access_token", "")
+            if not access_token:
+                return {"statusCode": 502, "headers": cors_headers(), "body": json.dumps({"error": "Токен Яндекс не получен"}), "isBase64Encoded": False}
+
+            # Получаем профиль пользователя
+            info_req = urllib.request.Request(
+                "https://login.yandex.ru/info?format=json",
+                headers={"Authorization": f"OAuth {access_token}"}
+            )
+            try:
+                with urllib.request.urlopen(info_req) as resp:
+                    yandex_user = json.loads(resp.read().decode())
+            except Exception as e:
+                print(f"[ERROR] Yandex user info failed: {e}")
+                return {"statusCode": 502, "headers": cors_headers(), "body": json.dumps({"error": "Ошибка получения профиля Яндекс"}), "isBase64Encoded": False}
+
+            yandex_id = str(yandex_user.get("id", ""))
+            email = yandex_user.get("default_email", "") or yandex_user.get("emails", [""])[0] if yandex_user.get("emails") else ""
+            name = yandex_user.get("display_name") or yandex_user.get("real_name") or yandex_user.get("login", "")
+
+            if not yandex_id:
+                return {"statusCode": 502, "headers": cors_headers(), "body": json.dumps({"error": "Не удалось получить ID Яндекс"}), "isBase64Encoded": False}
+
+            SCHEMA_Q = os.environ.get("MAIN_DB_SCHEMA", "public")
+
+            # Ищем существующего пользователя по oauth или email
+            cur.execute(
+                f'SELECT id, email, name, role, status FROM "{SCHEMA_Q}".users WHERE oauth_provider = %s AND oauth_id = %s',
+                ("yandex", yandex_id)
+            )
+            row = cur.fetchone()
+
+            if not row and email:
+                cur.execute(f'SELECT id, email, name, role, status FROM "{SCHEMA_Q}".users WHERE email = %s', (email,))
+                row = cur.fetchone()
+                if row:
+                    # Привязываем oauth к существующему аккаунту
+                    cur.execute(
+                        f'UPDATE "{SCHEMA_Q}".users SET oauth_provider = %s, oauth_id = %s WHERE id = %s',
+                        ("yandex", yandex_id, row[0])
+                    )
+
+            if not row:
+                # Создаём нового пользователя
+                cur.execute(
+                    f'INSERT INTO "{SCHEMA_Q}".users (email, password_hash, name, role, status, oauth_provider, oauth_id) '
+                    f"VALUES (%s, %s, %s, 'user', 'active', %s, %s) RETURNING id, email, name, role, status",
+                    (email or f"yandex_{yandex_id}@oauth", "", name, "yandex", yandex_id)
+                )
+                row = cur.fetchone()
+
+            user_id, user_email, user_name, role, status = row
+
+            if status == "blocked":
+                return {"statusCode": 403, "headers": cors_headers(), "body": json.dumps({"error": "Аккаунт заблокирован"}), "isBase64Encoded": False}
+
+            session_token = secrets.token_urlsafe(48)
+            expires = datetime.utcnow() + timedelta(days=30)
+            cur.execute(
+                f'INSERT INTO "{SCHEMA_Q}".user_sessions (user_id, token, expires_at) VALUES (%s, %s, %s)',
+                (user_id, session_token, expires)
+            )
+            cur.execute(f'UPDATE "{SCHEMA_Q}".users SET last_login_at = NOW() WHERE id = %s', (user_id,))
+            conn.commit()
+
+            # Редирект на фронт с токеном
+            front_url = os.environ.get("FRONTEND_URL", "https://poehali.dev")
+            user_payload = urllib.parse.quote(json.dumps({"id": user_id, "email": user_email, "name": user_name, "role": role}))
+            redirect_to = f"{front_url}/auth/callback?token={session_token}&user={user_payload}"
+            return {
+                "statusCode": 302,
+                "headers": {**cors_headers(), "Location": redirect_to},
+                "body": "",
                 "isBase64Encoded": False,
             }
 
