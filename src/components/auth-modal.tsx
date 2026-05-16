@@ -1,42 +1,10 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Checkbox } from "@/components/ui/checkbox"
-import Icon from "@/components/ui/icon"
 import { AUTH_URL, saveAuth } from "@/lib/auth"
 import TermsModal from "@/components/TermsModal"
-
-const YANDEX_AUTH_URL = `${AUTH_URL}/yandex`
-const VK_AUTH_URL = `${AUTH_URL}/vk`
-
-function OAuthButtons() {
-  return (
-    <div className="space-y-2">
-      <a
-        href={YANDEX_AUTH_URL}
-        className="flex items-center justify-center gap-2 w-full rounded-md border border-border bg-[#FC3F1D] hover:bg-[#e8381a] text-white text-sm font-medium py-2 transition-colors"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13.706 2H11.13C7.645 2 5.5 3.887 5.5 7.04c0 2.74 1.3 4.257 3.747 5.832L5.5 22h3.47l3.882-9.558-.117-.073C10.64 10.95 9.47 9.8 9.47 7.24c0-1.83 1.077-2.89 3.16-2.89h1.076V22H17V2h-3.294z" fill="white"/>
-        </svg>
-        Войти через Яндекс
-      </a>
-      <a
-        href={VK_AUTH_URL}
-        className="flex items-center justify-center gap-2 w-full rounded-md border border-border bg-[#0077FF] hover:bg-[#0066dd] text-white text-sm font-medium py-2 transition-colors"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12.785 16.241s.288-.032.436-.194c.136-.148.132-.427.132-.427s-.02-1.304.587-1.496c.598-.19 1.366 1.26 2.182 1.817.616.42 1.084.328 1.084.328l2.18-.03s1.137-.071.598-1.223c-.044-.093-.313-.66-1.61-1.867-1.36-1.265-1.178-1.06.46-3.246.999-1.33 1.398-2.142 1.272-2.49-.12-.332-.855-.244-.855-.244l-2.455.015s-.182-.025-.317.056c-.132.079-.217.264-.217.264s-.386 1.026-.9 1.899c-1.085 1.843-1.52 1.94-1.698 1.825-.413-.267-.31-1.074-.31-1.646 0-1.79.271-2.535-.528-2.727-.265-.064-.46-.107-1.137-.114-.87-.009-1.605.003-2.02.207-.277.135-.49.437-.36.454.161.021.525.098.719.362.25.341.241 1.107.241 1.107s.144 2.108-.335 2.372c-.329.18-.78-.187-1.748-1.86-.497-.858-.872-1.808-.872-1.808s-.072-.178-.202-.274c-.156-.115-.375-.151-.375-.151l-2.33.015s-.35.01-.479.163c-.114.136-.009.417-.009.417s1.826 4.271 3.893 6.422c1.896 1.976 4.047 1.846 4.047 1.846h.976z" fill="white"/>
-        </svg>
-        Войти через ВКонтакте
-      </a>
-    </div>
-  )
-}
+import { AuthTabs } from "@/components/auth-tabs"
+import { ForgotScreen, ResetScreen } from "@/components/auth-forgot-reset"
 
 interface AuthModalProps {
   open: boolean
@@ -200,310 +168,73 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
     }
   }
 
-  const ErrorBox = ({ text }: { text: string }) => (
-    <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-      <Icon name="AlertCircle" size={14} />
-      {text}
-    </div>
-  )
-
   return (
     <>
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-card border border-border text-white max-w-md w-full mx-4">
-        <DialogHeader>
-          <DialogTitle className="text-center font-orbitron text-xl text-white">
-            AI<span className="text-red-500"> Studio</span>
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Форма входа и регистрации в AI Studio
-          </DialogDescription>
-        </DialogHeader>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="bg-card border border-border text-white max-w-md w-full mx-4">
+          <DialogHeader>
+            <DialogTitle className="text-center font-orbitron text-xl text-white">
+              AI<span className="text-red-500"> Studio</span>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Форма входа и регистрации в AI Studio
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* ══ ЭКРАН: ВХОД / РЕГИСТРАЦИЯ ══ */}
-        {screen === "tabs" && (
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-2">
-            <TabsList className="w-full bg-background border border-border">
-              <TabsTrigger value="login" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground">
-                Вход
-              </TabsTrigger>
-              <TabsTrigger value="register" className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground">
-                Регистрация
-              </TabsTrigger>
-            </TabsList>
+          {/* ══ ЭКРАН: ВХОД / РЕГИСТРАЦИЯ ══ */}
+          {screen === "tabs" && (
+            <AuthTabs
+              activeTab={activeTab}
+              onTabChange={handleTabChange}
+              loginData={loginData}
+              setLoginData={setLoginData}
+              loginError={loginError}
+              isLoading={isLoading}
+              onLogin={handleLogin}
+              onForgotClick={() => { setForgotEmail(loginData.email); setScreen("forgot") }}
+              registerData={registerData}
+              setRegisterData={setRegisterData}
+              registerError={registerError}
+              termsAccepted={termsAccepted}
+              setTermsAccepted={setTermsAccepted}
+              onOpenTerms={() => setTermsModalOpen(true)}
+              onRegister={handleRegister}
+            />
+          )}
 
-            {/* Вход */}
-            <TabsContent value="login" className="mt-4">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <Label className="text-muted-foreground text-sm mb-1.5 block">Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="example@mail.ru"
-                    value={loginData.email}
-                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                    className="bg-white border-border text-black placeholder:text-gray-400"
-                    required
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <Label className="text-muted-foreground text-sm">Пароль</Label>
-                    <button
-                      type="button"
-                      className="text-primary text-xs hover:underline"
-                      onClick={() => { setForgotEmail(loginData.email); setScreen("forgot") }}
-                    >
-                      Забыли пароль?
-                    </button>
-                  </div>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginData.password}
-                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                    className="bg-white border-border text-black placeholder:text-gray-400"
-                    required
-                  />
-                </div>
-                {loginError && <ErrorBox text={loginError} />}
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white" disabled={isLoading}>
-                  {isLoading ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Входим...</> : "Войти"}
-                </Button>
-              </form>
-              <div className="mt-4 space-y-2">
-                <div className="relative flex items-center gap-2">
-                  <div className="flex-1 border-t border-border" />
-                  <span className="text-muted-foreground text-xs">или войти через</span>
-                  <div className="flex-1 border-t border-border" />
-                </div>
-                <OAuthButtons />
-              </div>
-              <p className="text-center text-muted-foreground text-sm mt-4">
-                Нет аккаунта?{" "}
-                <button className="text-primary hover:underline" onClick={() => setActiveTab("register")}>
-                  Зарегистрироваться
-                </button>
-              </p>
-            </TabsContent>
+          {/* ══ ЭКРАН: ВВОД EMAIL ══ */}
+          {screen === "forgot" && (
+            <ForgotScreen
+              forgotEmail={forgotEmail}
+              setForgotEmail={setForgotEmail}
+              forgotError={forgotError}
+              isLoading={isLoading}
+              onSubmit={handleForgot}
+              onBack={() => setScreen("tabs")}
+            />
+          )}
 
-            {/* Регистрация */}
-            <TabsContent value="register" className="mt-4">
-              <form onSubmit={handleRegister} className="space-y-3">
-                <div>
-                  <Label className="text-muted-foreground text-sm mb-1.5 block">Имя</Label>
-                  <Input
-                    type="text"
-                    placeholder="Ваше имя"
-                    value={registerData.name}
-                    onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
-                    className="bg-white border-border text-black placeholder:text-gray-400"
-                  />
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-sm mb-1.5 block">Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="example@mail.ru"
-                    value={registerData.email}
-                    onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                    className="bg-white border-border text-black placeholder:text-gray-400"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-sm mb-1.5 block">Пароль</Label>
-                  <Input
-                    type="password"
-                    placeholder="Минимум 6 символов"
-                    value={registerData.password}
-                    onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                    className="bg-white border-border text-black placeholder:text-gray-400"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-muted-foreground text-sm mb-1.5 block">Подтвердите пароль</Label>
-                  <Input
-                    type="password"
-                    placeholder="Повторите пароль"
-                    value={registerData.confirm}
-                    onChange={(e) => setRegisterData({ ...registerData, confirm: e.target.value })}
-                    className="bg-white border-border text-black placeholder:text-gray-400"
-                    required
-                  />
-                </div>
-                <label className="flex items-start gap-3 cursor-pointer group pt-1">
-                  <Checkbox
-                    checked={termsAccepted}
-                    onCheckedChange={(v) => setTermsAccepted(!!v)}
-                    className="mt-0.5 shrink-0"
-                  />
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                    Я ознакомился и принимаю{" "}
-                    <button
-                      type="button"
-                      onClick={() => setTermsModalOpen(true)}
-                      className="text-primary hover:underline"
-                    >
-                      Пользовательское соглашение
-                    </button>
-                    {" "}и{" "}
-                    <button
-                      type="button"
-                      onClick={() => navigate("/privacy")}
-                      className="text-primary hover:underline"
-                    >
-                      Политику конфиденциальности
-                    </button>
-                  </span>
-                </label>
-                {registerError && <ErrorBox text={registerError} />}
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white mt-1" disabled={isLoading || !termsAccepted}>
-                  {isLoading ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Создаём аккаунт...</> : "Зарегистрироваться"}
-                </Button>
-              </form>
-              <div className="mt-4 space-y-2">
-                <div className="relative flex items-center gap-2">
-                  <div className="flex-1 border-t border-border" />
-                  <span className="text-muted-foreground text-xs">или войти через</span>
-                  <div className="flex-1 border-t border-border" />
-                </div>
-                <OAuthButtons />
-              </div>
-              <div className="mt-3 pt-3 border-t border-border text-center">
-                <p className="text-muted-foreground text-xs">
-                  Уже есть аккаунт?{" "}
-                  <button type="button" className="text-primary hover:underline" onClick={() => setActiveTab("login")}>Войти</button>
-                </p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        )}
-
-        {/* ══ ЭКРАН: ВВОД EMAIL ══ */}
-        {screen === "forgot" && (
-          <div className="mt-2">
-            <button
-              className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-white mb-4 transition-colors"
-              onClick={() => setScreen("tabs")}
-            >
-              <Icon name="ChevronLeft" size={14} />
-              Назад
-            </button>
-            <p className="text-white font-medium mb-1">Восстановление пароля</p>
-            <p className="text-muted-foreground text-sm mb-4">
-              Введите email — мы пришлём код для сброса пароля.
-            </p>
-            <form onSubmit={handleForgot} className="space-y-4">
-              <div>
-                <Label className="text-muted-foreground text-sm mb-1.5 block">Email</Label>
-                <Input
-                  type="email"
-                  placeholder="example@mail.ru"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  className="bg-white border-border text-black placeholder:text-gray-400"
-                  required
-                  autoFocus
-                />
-              </div>
-              {forgotError && <ErrorBox text={forgotError} />}
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white" disabled={isLoading}>
-                {isLoading ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Отправляем...</> : "Получить код"}
-              </Button>
-            </form>
-          </div>
-        )}
-
-        {/* ══ ЭКРАН: ВВОД КОДА + НОВОГО ПАРОЛЯ ══ */}
-        {screen === "reset" && (
-          <div className="mt-2">
-            {!resetSuccess ? (
-              <>
-                <button
-                  className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-white mb-4 transition-colors"
-                  onClick={() => setScreen("forgot")}
-                >
-                  <Icon name="ChevronLeft" size={14} />
-                  Назад
-                </button>
-                <p className="text-white font-medium mb-1">Введите код и новый пароль</p>
-
-                {codeFromServer && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-3 mb-4">
-                    <p className="text-yellow-400 text-xs mb-1 flex items-center gap-1.5">
-                      <Icon name="Info" size={12} />
-                      Email-уведомления не настроены — используйте код ниже:
-                    </p>
-                    <p className="text-yellow-300 font-mono text-2xl font-bold tracking-widest text-center">{codeFromServer}</p>
-                    <p className="text-yellow-500 text-xs text-center mt-1">Действует 30 минут</p>
-                  </div>
-                )}
-
-                <form onSubmit={handleReset} className="space-y-3">
-                  <div>
-                    <Label className="text-muted-foreground text-sm mb-1.5 block">Код подтверждения</Label>
-                    <Input
-                      type="text"
-                      placeholder="123456"
-                      value={resetCode}
-                      onChange={(e) => setResetCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      className="bg-white border-border text-black placeholder:text-gray-400 font-mono text-center text-lg tracking-widest"
-                      maxLength={6}
-                      required
-                      autoFocus={!codeFromServer}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm mb-1.5 block">Новый пароль</Label>
-                    <Input
-                      type="password"
-                      placeholder="Минимум 6 символов"
-                      value={resetNewPwd}
-                      onChange={(e) => setResetNewPwd(e.target.value)}
-                      className="bg-white border-border text-black placeholder:text-gray-400"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm mb-1.5 block">Подтвердите пароль</Label>
-                    <Input
-                      type="password"
-                      placeholder="Повторите пароль"
-                      value={resetConfirm}
-                      onChange={(e) => setResetConfirm(e.target.value)}
-                      className="bg-white border-border text-black placeholder:text-gray-400"
-                      required
-                    />
-                  </div>
-                  {resetError && <ErrorBox text={resetError} />}
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white" disabled={isLoading}>
-                    {isLoading ? <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Сохраняем...</> : "Сохранить новый пароль"}
-                  </Button>
-                </form>
-              </>
-            ) : (
-              <div className="flex flex-col items-center py-6 text-center">
-                <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-                  <Icon name="CheckCircle" size={28} className="text-green-400" />
-                </div>
-                <p className="text-white font-medium text-lg mb-1">Пароль изменён!</p>
-                <p className="text-muted-foreground text-sm mb-5">Теперь войдите с новым паролем</p>
-                <Button
-                  className="bg-primary hover:bg-primary/90 text-white"
-                  onClick={() => { resetAllState(); setActiveTab("login") }}
-                >
-                  Войти
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-    <TermsModal open={termsModalOpen} onOpenChange={(v) => { setTermsModalOpen(v); if (!v) setTermsAccepted(true) }} />
+          {/* ══ ЭКРАН: ВВОД КОДА + НОВОГО ПАРОЛЯ ══ */}
+          {screen === "reset" && (
+            <ResetScreen
+              codeFromServer={codeFromServer}
+              resetCode={resetCode}
+              setResetCode={setResetCode}
+              resetNewPwd={resetNewPwd}
+              setResetNewPwd={setResetNewPwd}
+              resetConfirm={resetConfirm}
+              setResetConfirm={setResetConfirm}
+              resetError={resetError}
+              resetSuccess={resetSuccess}
+              isLoading={isLoading}
+              onSubmit={handleReset}
+              onBack={() => setScreen("forgot")}
+              onSuccessLogin={() => { resetAllState(); setActiveTab("login") }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      <TermsModal open={termsModalOpen} onOpenChange={(v) => { setTermsModalOpen(v); if (!v) setTermsAccepted(true) }} />
     </>
   )
 }
