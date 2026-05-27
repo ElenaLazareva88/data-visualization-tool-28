@@ -180,7 +180,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="dark min-h-screen bg-background flex items-center justify-center">
         <Icon name="Loader2" size={32} className="animate-spin text-primary" />
       </div>
     )
@@ -192,7 +192,7 @@ export default function ProfilePage() {
   const subColor = SUB_COLORS[profile.subscription] || SUB_COLORS.free
 
   return (
-    <div className="min-h-screen bg-background text-white">
+    <div className="dark min-h-screen bg-background text-white">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 pt-24 pb-16">
 
