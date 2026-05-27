@@ -150,7 +150,7 @@ const CanvasWithTextures = () => {
       flat
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       camera={{ position: [0, 0, 1] }}
-      style={{ background: "#000000" }}
+      style={{ background: "#000000", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
     >
       <Scene textures={textures} />
     </Canvas>
@@ -219,9 +219,11 @@ export const Hero3DWebGL = () => {
         </div>
       </div>
 
-      <CanvasErrorBoundary fallback={<div className="absolute inset-0 bg-black" />}>
-        <CanvasWithTextures />
-      </CanvasErrorBoundary>
+      <div className="absolute inset-0">
+        <CanvasErrorBoundary fallback={<div className="absolute inset-0 bg-black" />}>
+          <CanvasWithTextures />
+        </CanvasErrorBoundary>
+      </div>
     </div>
   )
 }
