@@ -1,5 +1,5 @@
 import { Canvas, extend, useFrame } from "@react-three/fiber"
-import { useAspect, useTexture } from "@react-three/drei"
+import { useAspect } from "@react-three/drei"
 import { useMemo, useRef, useState, useEffect, Component, type ReactNode } from "react"
 import * as THREE from "three"
 
@@ -15,16 +15,30 @@ class CanvasErrorBoundary extends Component<{ children: ReactNode; fallback?: Re
   }
 }
 
-const TEXTUREMAP = { src: "https://cdn.poehali.dev/projects/0741ffef-3765-4e8a-b89c-639ee3dc6ac6/bucket/hero/texture.png" }
-const DEPTHMAP = { src: "https://cdn.poehali.dev/projects/0741ffef-3765-4e8a-b89c-639ee3dc6ac6/bucket/hero/depthmap.webp" }
+const TEXTUREMAP_URL = "https://cdn.poehali.dev/projects/0741ffef-3765-4e8a-b89c-639ee3dc6ac6/bucket/hero/texture.png"
+const DEPTHMAP_URL = "https://cdn.poehali.dev/projects/0741ffef-3765-4e8a-b89c-639ee3dc6ac6/bucket/hero/depthmap.webp"
 
 extend(THREE as unknown as Record<string, unknown>)
 
 const WIDTH = 300
 const HEIGHT = 300
 
-const Scene = () => {
-  const [rawMap, depthMap] = useTexture([TEXTUREMAP.src, DEPTHMAP.src])
+function loadTextureFromUrl(url: string): Promise<THREE.Texture> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      const tex = new THREE.Texture(img)
+      tex.needsUpdate = true
+      resolve(tex)
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
+
+const Scene = ({ textures }: { textures: [THREE.Texture, THREE.Texture] }) => {
+  const [rawMap, depthMap] = textures
   const meshRef = useRef<THREE.Mesh>(null)
 
   const material = useMemo(() => {
@@ -44,7 +58,6 @@ const Scene = () => {
       uniform float uTime;
       varying vec2 vUv;
 
-      // Simple noise function
       float random(vec2 st) {
         return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
       }
@@ -63,15 +76,12 @@ const Scene = () => {
       void main() {
         vec2 uv = vUv;
 
-        // Depth-based displacement
         float depth = texture2D(uDepthMap, uv).r;
         vec2 displacement = depth * uPointer * 0.01;
         vec2 distortedUv = uv + displacement;
 
-        // Base texture
         vec4 baseColor = texture2D(uTexture, distortedUv);
 
-        // Create scanning effect
         float aspect = ${WIDTH}.0 / ${HEIGHT}.0;
         vec2 tUv = vec2(uv.x * aspect, uv.y);
         vec2 tiling = vec2(120.0);
@@ -81,13 +91,10 @@ const Scene = () => {
         float dist = length(tiledUv);
         float dot = smoothstep(0.5, 0.49, dist) * brightness;
 
-        // Flow effect based on progress
         float flow = 1.0 - smoothstep(0.0, 0.02, abs(depth - uProgress));
 
-        // Red scanning overlay
         vec3 mask = vec3(dot * flow * 10.0, 0.0, 0.0);
 
-        // Combine effects
         vec3 final = baseColor.rgb + mask;
 
         gl_FragColor = vec4(final, 1.0);
@@ -122,6 +129,31 @@ const Scene = () => {
     <mesh ref={meshRef} scale={[w * scaleFactor, h * scaleFactor, 1]} material={material}>
       <planeGeometry />
     </mesh>
+  )
+}
+
+const CanvasWithTextures = () => {
+  const [textures, setTextures] = useState<[THREE.Texture, THREE.Texture] | null>(null)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    Promise.all([loadTextureFromUrl(TEXTUREMAP_URL), loadTextureFromUrl(DEPTHMAP_URL)])
+      .then(([t1, t2]) => setTextures([t1, t2]))
+      .catch(() => setError(true))
+  }, [])
+
+  if (error) return <div className="absolute inset-0 bg-black" />
+  if (!textures) return null
+
+  return (
+    <Canvas
+      flat
+      gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+      camera={{ position: [0, 0, 1] }}
+      style={{ background: "#000000" }}
+    >
+      <Scene textures={textures} />
+    </Canvas>
   )
 }
 
@@ -188,18 +220,7 @@ export const Hero3DWebGL = () => {
       </div>
 
       <CanvasErrorBoundary fallback={<div className="absolute inset-0 bg-black" />}>
-        <Canvas
-          flat
-          gl={{
-            antialias: true,
-            alpha: false,
-            powerPreference: "high-performance",
-          }}
-          camera={{ position: [0, 0, 1] }}
-          style={{ background: "#000000" }}
-        >
-          <Scene />
-        </Canvas>
+        <CanvasWithTextures />
       </CanvasErrorBoundary>
     </div>
   )
