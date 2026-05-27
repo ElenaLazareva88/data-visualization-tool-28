@@ -38,6 +38,7 @@ import PrivacyPage from "./pages/PrivacyPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import InvitePage from "./pages/InvitePage";
 import LogoPage from "./pages/LogoPage";
+import CreatePage from "./pages/CreatePage";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+          <Route path="/create" element={<CreatePage />} />
           <Route path="/invite" element={<InvitePage />} />
           <Route path="/logo" element={<LogoPage />} />
           {/* Admin panel */}

@@ -229,7 +229,7 @@ export const Hero3DWebGL = () => {
             transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
           >
             <Link
-              to="/music"
+              to="/create"
               className="px-7 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-105 text-sm md:text-base"
             >
               Начать создавать
