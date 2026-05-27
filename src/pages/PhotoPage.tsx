@@ -14,6 +14,24 @@ import { Footer } from "@/components/footer"
 
 const FONTS = ["Arial", "Roboto", "Playfair Display", "Montserrat", "Oswald", "Pacifico", "Comic Sans"]
 
+const AI_MODELS = [
+  { id: "flux", label: "FLUX 1.1 Pro", desc: "Лучшее качество", badge: "Топ" },
+  { id: "sdxl", label: "Stable Diffusion XL", desc: "Быстро и детально", badge: "" },
+  { id: "dalle3", label: "DALL·E 3", desc: "Точное следование тексту", badge: "" },
+  { id: "midjourney", label: "Midjourney Style", desc: "Художественный стиль", badge: "Новый" },
+]
+
+const INVITE_EVENTS = [
+  { id: "birthday", label: "День рождения", icon: "🎂" },
+  { id: "wedding", label: "Свадьба", icon: "💍" },
+  { id: "anniversary", label: "Юбилей", icon: "🎉" },
+  { id: "corporate", label: "Корпоратив", icon: "🏢" },
+  { id: "concert", label: "Концерт", icon: "🎵" },
+  { id: "exhibition", label: "Выставка", icon: "🖼️" },
+  { id: "sport", label: "Спортивное", icon: "🏆" },
+  { id: "custom", label: "Другое", icon: "✨" },
+]
+
 export default function PhotoPage() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const [generateDesc, setGenerateDesc] = useState("")
@@ -26,6 +44,18 @@ export default function PhotoPage() {
   const [generated, setGenerated] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Реалистичные картинки
+  const [realisticDesc, setRealisticDesc] = useState("")
+  const [selectedModel, setSelectedModel] = useState("flux")
+
+  // Пригласительные
+  const [inviteFrom, setInviteFrom] = useState("")
+  const [inviteTo, setInviteTo] = useState("")
+  const [inviteEvent, setInviteEvent] = useState("birthday")
+  const [inviteDate, setInviteDate] = useState("")
+  const [invitePlace, setInvitePlace] = useState("")
+  const [inviteCustom, setInviteCustom] = useState("")
+
   const toggleTool = (t: string) => {
     setActiveTools(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
   }
@@ -35,11 +65,15 @@ export default function PhotoPage() {
     setTimeout(() => {
       setIsGenerating(false)
       setGenerated(true)
-      saveGeneration({
-        type: "photo",
-        title: generateDesc ? generateDesc.slice(0, 80) : "Изображение",
-        prompt: generateDesc,
-      })
+      const prompt =
+        activeTab === "realistic" ? realisticDesc :
+        activeTab === "invite" ? `Приглашение: ${inviteEvent}, от ${inviteFrom}, для ${inviteTo}` :
+        generateDesc
+      const title =
+        activeTab === "realistic" ? (realisticDesc.slice(0, 80) || "Реалистичная картинка") :
+        activeTab === "invite" ? `Приглашение на ${INVITE_EVENTS.find(e => e.id === inviteEvent)?.label}` :
+        (generateDesc.slice(0, 80) || "Изображение")
+      saveGeneration({ type: "photo", title, prompt })
     }, 2000)
   }
 
@@ -66,12 +100,18 @@ export default function PhotoPage() {
           <div className="lg:col-span-2 space-y-5">
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="w-full bg-card border border-border mb-4">
+              <TabsList className="w-full bg-card border border-border mb-4 flex-wrap h-auto gap-1 p-1">
                 <TabsTrigger value="upload" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
                   <Icon name="Upload" size={14} className="mr-1" />Загрузить
                 </TabsTrigger>
                 <TabsTrigger value="generate" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
                   <Icon name="Sparkles" size={14} className="mr-1" />Сгенерировать
+                </TabsTrigger>
+                <TabsTrigger value="realistic" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Icon name="Camera" size={14} className="mr-1" />Картинка
+                </TabsTrigger>
+                <TabsTrigger value="invite" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Icon name="Mail" size={14} className="mr-1" />Приглашение
                 </TabsTrigger>
               </TabsList>
 
@@ -127,6 +167,122 @@ export default function PhotoPage() {
                       rows={4}
                       className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
                     />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ===== РЕАЛИСТИЧНЫЕ КАРТИНКИ ===== */}
+              <TabsContent value="realistic">
+                <Card className="bg-card border-border">
+                  <CardContent className="pt-5 space-y-4">
+                    <div>
+                      <Label className="text-muted-foreground text-sm mb-2 block">Описание картинки</Label>
+                      <Textarea
+                        placeholder="Опишите что хотите... например: «Реалистичный портрет женщины 30 лет, студийное освещение, нейтральный фон»"
+                        value={realisticDesc}
+                        onChange={(e) => setRealisticDesc(e.target.value)}
+                        rows={3}
+                        className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm mb-3 block">ИИ-модель</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {AI_MODELS.map((m) => (
+                          <div
+                            key={m.id}
+                            onClick={() => setSelectedModel(m.id)}
+                            className={`rounded-lg border-2 p-3 cursor-pointer transition-colors flex items-center justify-between ${
+                              selectedModel === m.id ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-medium ${selectedModel === m.id ? "text-primary" : "text-white"}`}>{m.label}</span>
+                                {m.badge && <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">{m.badge}</span>}
+                              </div>
+                              <p className="text-muted-foreground text-xs mt-0.5">{m.desc}</p>
+                            </div>
+                            {selectedModel === m.id && <Icon name="CheckCircle" size={16} className="text-primary flex-shrink-0" />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ===== ПРИГЛАСИТЕЛЬНЫЕ ===== */}
+              <TabsContent value="invite">
+                <Card className="bg-card border-border">
+                  <CardContent className="pt-5 space-y-4">
+                    <div>
+                      <Label className="text-muted-foreground text-sm mb-2 block">Тип мероприятия</Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {INVITE_EVENTS.map((ev) => (
+                          <div
+                            key={ev.id}
+                            onClick={() => setInviteEvent(ev.id)}
+                            className={`rounded-lg border-2 p-2 cursor-pointer transition-colors text-center ${
+                              inviteEvent === ev.id ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <div className="text-xl mb-1">{ev.icon}</div>
+                            <p className={`text-xs leading-tight ${inviteEvent === ev.id ? "text-primary" : "text-muted-foreground"}`}>{ev.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-muted-foreground text-sm mb-1.5 block">Кто приглашает</Label>
+                        <Input
+                          placeholder="Имя или название..."
+                          value={inviteFrom}
+                          onChange={(e) => setInviteFrom(e.target.value)}
+                          className="bg-background border-border text-white placeholder:text-muted-foreground"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground text-sm mb-1.5 block">Кого приглашают</Label>
+                        <Input
+                          placeholder="Имя гостя или «всех»..."
+                          value={inviteTo}
+                          onChange={(e) => setInviteTo(e.target.value)}
+                          className="bg-background border-border text-white placeholder:text-muted-foreground"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-muted-foreground text-sm mb-1.5 block">Дата и время</Label>
+                        <Input
+                          placeholder="15 июня, 18:00"
+                          value={inviteDate}
+                          onChange={(e) => setInviteDate(e.target.value)}
+                          className="bg-background border-border text-white placeholder:text-muted-foreground"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground text-sm mb-1.5 block">Место</Label>
+                        <Input
+                          placeholder="Адрес или название..."
+                          value={invitePlace}
+                          onChange={(e) => setInvitePlace(e.target.value)}
+                          className="bg-background border-border text-white placeholder:text-muted-foreground"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm mb-1.5 block">Дополнительный текст</Label>
+                      <Textarea
+                        placeholder="Дресс-код, пожелания, контакт для ответа..."
+                        value={inviteCustom}
+                        onChange={(e) => setInviteCustom(e.target.value)}
+                        rows={2}
+                        className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
