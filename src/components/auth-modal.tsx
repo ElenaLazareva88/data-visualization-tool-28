@@ -78,7 +78,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
     setLoginError("")
     setIsLoading(true)
     try {
-      const res = await fetch(`${AUTH_URL}/login`, {
+      const res = await fetch(AUTH_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "login", email: loginData.email, password: loginData.password }),
@@ -106,7 +106,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
     if (registerData.password.length < 6) { setRegisterError("Пароль должен быть не менее 6 символов"); return }
     setIsLoading(true)
     try {
-      const res = await fetch(`${AUTH_URL}/register`, {
+      const res = await fetch(AUTH_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "register", email: registerData.email, password: registerData.password, name: registerData.name }),
@@ -130,7 +130,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
     setForgotError("")
     setIsLoading(true)
     try {
-      const res = await fetch(`${AUTH_URL}/forgot-password`, {
+      const res = await fetch(AUTH_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "forgot-password", email: forgotEmail }),
@@ -155,7 +155,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
     if (resetNewPwd.length < 6) { setResetError("Пароль должен быть не менее 6 символов"); return }
     setIsLoading(true)
     try {
-      const res = await fetch(`${AUTH_URL}/reset-password`, {
+      const res = await fetch(AUTH_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "reset-password", email: forgotEmail, code: resetCode, new_password: resetNewPwd }),

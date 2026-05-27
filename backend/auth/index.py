@@ -91,15 +91,17 @@ def handler(event: dict, context) -> dict:
         except Exception:
             pass
 
-    # Fallback: если path пустой/корень — определяем endpoint по action в body или query
+    # Определяем action из body, query или path
+    qp = event.get("queryStringParameters") or {}
     action = ""
     if isinstance(body, dict):
         action = (body.get("action") or "").strip().lower()
     if not action:
-        qp = event.get("queryStringParameters") or {}
         action = (qp.get("action") or "").strip().lower()
-    if action and (path == "/" or path == ""):
-        path = "/" + action
+    # Если path пустой или корневой — используем action как путь
+    if path == "/" or path == "":
+        if action:
+            path = "/" + action
 
     print(f"[DEBUG] method={method} path={path} action={action} body_keys={list(body.keys()) if isinstance(body, dict) else 'n/a'}")
 
@@ -186,7 +188,7 @@ def handler(event: dict, context) -> dict:
             }
 
         # GET /auth/me
-        elif method == "GET" and "/me" in path:
+        elif method == "GET" and ("/me" in path or action == "me"):
             token = get_token_from_event(event)
             if not token:
                 return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Токен не передан"}), "isBase64Encoded": False}
@@ -204,7 +206,7 @@ def handler(event: dict, context) -> dict:
             }
 
         # POST /auth/logout
-        elif method == "POST" and "/logout" in path:
+        elif method == "POST" and ("/logout" in path or action == "logout"):
             token = get_token_from_event(event)
             if token:
                 cur.execute(f"UPDATE {q('user_sessions')} SET expires_at = NOW() WHERE token = %s", (token,))
@@ -212,7 +214,7 @@ def handler(event: dict, context) -> dict:
             return {"statusCode": 200, "headers": cors_headers(), "body": json.dumps({"ok": True}), "isBase64Encoded": False}
 
         # GET /auth/profile — полный профиль с подпиской
-        elif method == "GET" and "/profile" in path:
+        elif method == "GET" and ("/profile" in path or action == "profile"):
             token = get_token_from_event(event)
             if not token:
                 return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
@@ -250,7 +252,7 @@ def handler(event: dict, context) -> dict:
             }
 
         # PUT /auth/profile — обновление имени и email
-        elif method == "PUT" and "/profile" in path:
+        elif method == "PUT" and ("/profile" in path or action == "profile"):
             token = get_token_from_event(event)
             if not token:
                 return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
@@ -285,7 +287,7 @@ def handler(event: dict, context) -> dict:
             }
 
         # PUT /auth/password — смена пароля
-        elif method == "PUT" and "/password" in path:
+        elif method == "PUT" and ("/password" in path or action == "password"):
             token = get_token_from_event(event)
             if not token:
                 return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
@@ -322,7 +324,7 @@ def handler(event: dict, context) -> dict:
             }
 
         # GET /auth/history — история генераций
-        elif method == "GET" and "/history" in path:
+        elif method == "GET" and ("/history" in path or action == "history"):
             token = get_token_from_event(event)
             if not token:
                 return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}
@@ -380,7 +382,7 @@ def handler(event: dict, context) -> dict:
             }
 
         # POST /auth/generation — сохранить запись в историю генераций
-        elif method == "POST" and "/generation" in path:
+        elif method == "POST" and ("/generation" in path or action == "generation"):
             token = get_token_from_event(event)
             if not token:
                 return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Не авторизован"}), "isBase64Encoded": False}

@@ -99,7 +99,7 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     setLoading(true)
-    const res = await fetch(`${AUTH_URL}/profile`, {
+    const res = await fetch(`${AUTH_URL}?action=profile`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
     if (res.status === 401) { clearAuth(); navigate("/"); return }
@@ -112,8 +112,8 @@ export default function ProfilePage() {
 
   const loadHistory = async (type: string) => {
     setHistoryLoading(true)
-    const params = type !== "all" ? `?type=${type}` : ""
-    const res = await fetch(`${AUTH_URL}/history${params}`, {
+    const params = type !== "all" ? `&type=${type}` : ""
+    const res = await fetch(`${AUTH_URL}?action=history${params}`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
     const data = await res.json()
@@ -126,10 +126,10 @@ export default function ProfilePage() {
     e.preventDefault()
     setProfileSaving(true)
     setProfileMsg(null)
-    const res = await fetch(`${AUTH_URL}/profile`, {
+    const res = await fetch(AUTH_URL, {
       method: "PUT",
       headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editName, email: editEmail }),
+      body: JSON.stringify({ action: "profile", name: editName, email: editEmail }),
     })
     const data = await res.json()
     if (res.ok) {
@@ -148,10 +148,10 @@ export default function ProfilePage() {
     setPwdMsg(null)
     if (newPwd !== confirmPwd) { setPwdMsg({ ok: false, text: "Новые пароли не совпадают" }); return }
     setPwdSaving(true)
-    const res = await fetch(`${AUTH_URL}/password`, {
+    const res = await fetch(AUTH_URL, {
       method: "PUT",
       headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ current_password: currentPwd, new_password: newPwd }),
+      body: JSON.stringify({ action: "password", current_password: currentPwd, new_password: newPwd }),
     })
     const data = await res.json()
     if (res.ok) {

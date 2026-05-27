@@ -34,9 +34,10 @@ export default function AdminLayout() {
   const handleLogout = async () => {
     const token = getToken()
     if (token) {
-      fetch(`${AUTH_URL}/logout`, {
+      fetch(AUTH_URL, {
         method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout" })
       }).catch(() => {})
     }
     clearAuth()
