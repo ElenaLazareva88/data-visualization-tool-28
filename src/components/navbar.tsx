@@ -12,6 +12,7 @@ const TOOLS = [
   { label: "Тексты", path: "/text", icon: "FileText" },
   { label: "Джинглы", path: "/jingle", icon: "Radio" },
   { label: "Пригласительные", path: "/invite", icon: "Mail" },
+  { label: "Логотипы", path: "/logo", icon: "Hexagon" },
 ]
 
 const NAV_LINKS = [
