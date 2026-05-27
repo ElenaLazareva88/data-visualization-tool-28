@@ -70,6 +70,9 @@ export default function VideoPage() {
                 <TabsTrigger value="edit" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
                   <Icon name="Film" size={14} className="mr-1" />Редактировать
                 </TabsTrigger>
+                <TabsTrigger value="cartoon" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Icon name="Sparkles" size={14} className="mr-1" />Мультфильм
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="generate">
@@ -146,6 +149,44 @@ export default function VideoPage() {
                           if (e.target.files?.[0]) setUploadedVideo("loaded")
                         }}
                       />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="cartoon">
+                <Card className="bg-card border-border">
+                  <CardContent className="pt-5 space-y-4">
+                    <div>
+                      <Label className="text-muted-foreground text-sm mb-2 block">Описание мультфильма</Label>
+                      <Textarea
+                        placeholder="Опишите сцену... например: «Маленький котёнок идёт по радужному лесу, мультяшный стиль, яркие краски»"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={3}
+                        className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm mb-2 block">Стиль анимации</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: "disney", label: "Disney / Pixar", icon: "⭐" },
+                          { id: "anime", label: "Аниме", icon: "🌸" },
+                          { id: "2d", label: "2D классика", icon: "🎨" },
+                          { id: "stop-motion", label: "Стоп-моушен", icon: "🧸" },
+                        ].map((style) => (
+                          <div
+                            key={style.id}
+                            className={`rounded-lg border-2 p-3 cursor-pointer transition-colors flex items-center gap-2 ${
+                              format === style.id ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                            }`}
+                            onClick={() => setFormat(style.id)}
+                          >
+                            <span className="text-xl">{style.icon}</span>
+                            <span className={`text-sm font-medium ${format === style.id ? "text-primary" : "text-white"}`}>{style.label}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
