@@ -15,8 +15,8 @@ class CanvasErrorBoundary extends Component<{ children: ReactNode; fallback?: Re
   }
 }
 
-const TEXTUREMAP = { src: "https://i.postimg.cc/XYwvXN8D/img-4.png" }
-const DEPTHMAP = { src: "https://i.postimg.cc/2SHKQh2q/raw-4.webp" }
+const TEXTUREMAP = { src: "https://cdn.poehali.dev/projects/0741ffef-3765-4e8a-b89c-639ee3dc6ac6/bucket/hero/texture.png" }
+const DEPTHMAP = { src: "https://cdn.poehali.dev/projects/0741ffef-3765-4e8a-b89c-639ee3dc6ac6/bucket/hero/depthmap.webp" }
 
 extend(THREE as unknown as Record<string, unknown>)
 
