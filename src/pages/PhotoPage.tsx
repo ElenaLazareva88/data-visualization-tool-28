@@ -21,16 +21,7 @@ const AI_MODELS = [
   { id: "midjourney", label: "Midjourney Style", desc: "Художественный стиль", badge: "Новый" },
 ]
 
-const INVITE_EVENTS = [
-  { id: "birthday", label: "День рождения", icon: "🎂" },
-  { id: "wedding", label: "Свадьба", icon: "💍" },
-  { id: "anniversary", label: "Юбилей", icon: "🎉" },
-  { id: "corporate", label: "Корпоратив", icon: "🏢" },
-  { id: "concert", label: "Концерт", icon: "🎵" },
-  { id: "exhibition", label: "Выставка", icon: "🖼️" },
-  { id: "sport", label: "Спортивное", icon: "🏆" },
-  { id: "custom", label: "Другое", icon: "✨" },
-]
+
 
 export default function PhotoPage() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
@@ -48,13 +39,7 @@ export default function PhotoPage() {
   const [realisticDesc, setRealisticDesc] = useState("")
   const [selectedModel, setSelectedModel] = useState("flux")
 
-  // Пригласительные
-  const [inviteFrom, setInviteFrom] = useState("")
-  const [inviteTo, setInviteTo] = useState("")
-  const [inviteEvent, setInviteEvent] = useState("birthday")
-  const [inviteDate, setInviteDate] = useState("")
-  const [invitePlace, setInvitePlace] = useState("")
-  const [inviteCustom, setInviteCustom] = useState("")
+
 
   const toggleTool = (t: string) => {
     setActiveTools(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
@@ -109,9 +94,6 @@ export default function PhotoPage() {
                 </TabsTrigger>
                 <TabsTrigger value="realistic" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
                   <Icon name="Camera" size={14} className="mr-1" />Картинка
-                </TabsTrigger>
-                <TabsTrigger value="invite" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-                  <Icon name="Mail" size={14} className="mr-1" />Приглашение
                 </TabsTrigger>
               </TabsList>
 
@@ -212,80 +194,6 @@ export default function PhotoPage() {
                 </Card>
               </TabsContent>
 
-              {/* ===== ПРИГЛАСИТЕЛЬНЫЕ ===== */}
-              <TabsContent value="invite">
-                <Card className="bg-card border-border">
-                  <CardContent className="pt-5 space-y-4">
-                    <div>
-                      <Label className="text-muted-foreground text-sm mb-2 block">Тип мероприятия</Label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {INVITE_EVENTS.map((ev) => (
-                          <div
-                            key={ev.id}
-                            onClick={() => setInviteEvent(ev.id)}
-                            className={`rounded-lg border-2 p-2 cursor-pointer transition-colors text-center ${
-                              inviteEvent === ev.id ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
-                            }`}
-                          >
-                            <div className="text-xl mb-1">{ev.icon}</div>
-                            <p className={`text-xs leading-tight ${inviteEvent === ev.id ? "text-primary" : "text-muted-foreground"}`}>{ev.label}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-muted-foreground text-sm mb-1.5 block">Кто приглашает</Label>
-                        <Input
-                          placeholder="Имя или название..."
-                          value={inviteFrom}
-                          onChange={(e) => setInviteFrom(e.target.value)}
-                          className="bg-background border-border text-white placeholder:text-muted-foreground"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-muted-foreground text-sm mb-1.5 block">Кого приглашают</Label>
-                        <Input
-                          placeholder="Имя гостя или «всех»..."
-                          value={inviteTo}
-                          onChange={(e) => setInviteTo(e.target.value)}
-                          className="bg-background border-border text-white placeholder:text-muted-foreground"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-muted-foreground text-sm mb-1.5 block">Дата и время</Label>
-                        <Input
-                          placeholder="15 июня, 18:00"
-                          value={inviteDate}
-                          onChange={(e) => setInviteDate(e.target.value)}
-                          className="bg-background border-border text-white placeholder:text-muted-foreground"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-muted-foreground text-sm mb-1.5 block">Место</Label>
-                        <Input
-                          placeholder="Адрес или название..."
-                          value={invitePlace}
-                          onChange={(e) => setInvitePlace(e.target.value)}
-                          className="bg-background border-border text-white placeholder:text-muted-foreground"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground text-sm mb-1.5 block">Дополнительный текст</Label>
-                      <Textarea
-                        placeholder="Дресс-код, пожелания, контакт для ответа..."
-                        value={inviteCustom}
-                        onChange={(e) => setInviteCustom(e.target.value)}
-                        rows={2}
-                        className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
             </Tabs>
 
             {/* Tools */}

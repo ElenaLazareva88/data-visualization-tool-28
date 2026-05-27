@@ -11,6 +11,7 @@ const TOOLS = [
   { label: "Фото", path: "/photo", icon: "Image" },
   { label: "Тексты", path: "/text", icon: "FileText" },
   { label: "Джинглы", path: "/jingle", icon: "Radio" },
+  { label: "Пригласительные", path: "/invite", icon: "Mail" },
 ]
 
 const NAV_LINKS = [
