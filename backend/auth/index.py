@@ -81,14 +81,25 @@ def handler(event: dict, context) -> dict:
         return {"statusCode": 200, "headers": cors_headers(), "body": "", "isBase64Encoded": False}
 
     method = event.get("httpMethod", "GET")
-    path = event.get("path", "/")
-    print(f"[DEBUG] method={method} path={path} body_raw={event.get('body', '')[:200]}")
+    path = event.get("path", "/") or "/"
     body = {}
     if event.get("body"):
         try:
             body = json.loads(event["body"])
         except Exception:
             pass
+
+    # Fallback: если path пустой/корень — определяем endpoint по action в body или query
+    action = ""
+    if isinstance(body, dict):
+        action = (body.get("action") or "").strip().lower()
+    if not action:
+        qp = event.get("queryStringParameters") or {}
+        action = (qp.get("action") or "").strip().lower()
+    if action and (path == "/" or path == ""):
+        path = "/" + action
+
+    print(f"[DEBUG] method={method} path={path} action={action} body_keys={list(body.keys()) if isinstance(body, dict) else 'n/a'}")
 
     try:
         conn = get_db()
@@ -835,8 +846,19 @@ def handler(event: dict, context) -> dict:
             }
 
         else:
-            return {"statusCode": 404, "headers": cors_headers(), "body": json.dumps({"error": "Not found"}), "isBase64Encoded": False}
+            return {"statusCode": 404, "headers": cors_headers(), "body": json.dumps({"error": "Not found", "method": method, "path": path}), "isBase64Encoded": False}
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        print(f"[ERROR] Unhandled exception: {type(e).__name__}: {e}")
+        return {"statusCode": 500, "headers": cors_headers(), "body": json.dumps({"error": "Внутренняя ошибка сервера", "detail": f"{type(e).__name__}: {e}"}), "isBase64Encoded": False}
 
     finally:
-        cur.close()
-        conn.close()
+        try:
+            cur.close()
+            conn.close()
+        except Exception:
+            pass

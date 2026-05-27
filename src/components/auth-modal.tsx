@@ -81,7 +81,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
       const res = await fetch(`${AUTH_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginData.email, password: loginData.password }),
+        body: JSON.stringify({ action: "login", email: loginData.email, password: loginData.password }),
       })
       const data = await res.json()
       if (!res.ok) { setLoginError(data.error || "Неверный email или пароль"); return }
@@ -108,7 +108,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
       const res = await fetch(`${AUTH_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: registerData.email, password: registerData.password, name: registerData.name }),
+        body: JSON.stringify({ action: "register", email: registerData.email, password: registerData.password, name: registerData.name }),
       })
       const data = await res.json()
       if (!res.ok) { setRegisterError(data.error || "Ошибка регистрации"); return }
@@ -131,7 +131,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
       const res = await fetch(`${AUTH_URL}/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: forgotEmail }),
+        body: JSON.stringify({ action: "forgot-password", email: forgotEmail }),
       })
       const data = await res.json()
       if (!res.ok) { setForgotError(data.error || "Ошибка"); return }
@@ -156,7 +156,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
       const res = await fetch(`${AUTH_URL}/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: forgotEmail, code: resetCode, new_password: resetNewPwd }),
+        body: JSON.stringify({ action: "reset-password", email: forgotEmail, code: resetCode, new_password: resetNewPwd }),
       })
       const data = await res.json()
       if (!res.ok) { setResetError(data.error || "Ошибка сброса пароля"); return }
