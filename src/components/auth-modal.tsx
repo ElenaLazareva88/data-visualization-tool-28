@@ -173,7 +173,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="bg-card border border-border text-white max-w-md w-full mx-4">
+        <DialogContent className="dark bg-card border border-border text-white max-w-md w-full mx-4">
           <DialogHeader>
             <DialogTitle className="text-center font-orbitron text-xl text-white">
               AI<span className="text-red-500"> Studio</span>
