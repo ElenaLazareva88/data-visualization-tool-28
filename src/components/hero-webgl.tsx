@@ -2,6 +2,8 @@ import { Canvas, extend, useFrame } from "@react-three/fiber"
 import { useAspect } from "@react-three/drei"
 import { useMemo, useRef, useState, useEffect, Component, type ReactNode } from "react"
 import * as THREE from "three"
+import { motion } from "framer-motion"
+import { Link } from "react-router-dom"
 
 class CanvasErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode; fallback?: ReactNode }) {
@@ -217,6 +219,50 @@ export const Hero3DWebGL = () => {
             {subtitle}
           </div>
         </div>
+
+        {/* CTA кнопки */}
+        {subtitleVisible && (
+          <motion.div
+            className="flex flex-wrap gap-4 justify-center mt-8 pointer-events-auto normal-case"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
+          >
+            <Link
+              to="/music"
+              className="px-7 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-105 text-sm md:text-base"
+            >
+              Начать создавать
+            </Link>
+            <a
+              href="#technology"
+              className="px-7 py-3 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-semibold rounded-xl transition-all duration-200 backdrop-blur-sm hover:scale-105 text-sm md:text-base"
+            >
+              Узнать больше
+            </a>
+          </motion.div>
+        )}
+
+        {/* Статистика */}
+        {subtitleVisible && (
+          <motion.div
+            className="flex flex-wrap gap-8 justify-center mt-12 pointer-events-none normal-case"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+          >
+            {[
+              { value: "50K+", label: "Пользователей" },
+              { value: "1M+", label: "Генераций" },
+              { value: "5", label: "Типов контента" },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="text-2xl md:text-3xl font-bold text-white font-orbitron">{s.value}</div>
+                <div className="text-gray-400 text-xs md:text-sm mt-1">{s.label}</div>
+              </div>
+            ))}
+          </motion.div>
+        )}
       </div>
 
       <div className="absolute inset-0">
