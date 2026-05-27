@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import Icon from "@/components/ui/icon"
 import { Link, useLocation, useNavigate } from "react-router-dom"
@@ -99,6 +99,16 @@ function UserAvatar({ user, onLogout }: { user: User; onLogout: () => void }) {
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const toolsCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const openTools = useCallback(() => {
+    if (toolsCloseTimer.current) clearTimeout(toolsCloseTimer.current)
+    setToolsOpen(true)
+  }, [])
+
+  const closeTools = useCallback(() => {
+    toolsCloseTimer.current = setTimeout(() => setToolsOpen(false), 150)
+  }, [])
   const [authOpen, setAuthOpen] = useState(false)
   const [authTab, setAuthTab] = useState<"login" | "register">("login")
   const [user, setUser] = useState<User | null>(getUser())
@@ -153,8 +163,8 @@ export function Navbar() {
               <div className="relative">
                 <button
                   className="font-geist text-white hover:text-red-500 transition-colors duration-200 flex items-center gap-1"
-                  onMouseEnter={() => setToolsOpen(true)}
-                  onMouseLeave={() => setToolsOpen(false)}
+                  onMouseEnter={openTools}
+                  onMouseLeave={closeTools}
                 >
                   Инструменты
                   <Icon name="ChevronDown" size={14} />
@@ -162,8 +172,8 @@ export function Navbar() {
                 {toolsOpen && (
                   <div
                     className="absolute top-full left-0 mt-1 bg-black/98 border border-red-500/20 rounded-lg py-2 min-w-[160px] shadow-xl"
-                    onMouseEnter={() => setToolsOpen(true)}
-                    onMouseLeave={() => setToolsOpen(false)}
+                    onMouseEnter={openTools}
+                    onMouseLeave={closeTools}
                   >
                     {TOOLS.map((t) => (
                       <Link
