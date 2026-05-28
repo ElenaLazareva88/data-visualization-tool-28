@@ -64,8 +64,11 @@ export default function VideoPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-5">
 
-            <Tabs defaultValue="generate" className="w-full">
-              <TabsList className="w-full bg-card border border-border mb-4">
+            <Tabs defaultValue="avatar" className="w-full">
+              <TabsList className="w-full bg-card border border-border mb-4 flex-wrap h-auto gap-1 p-1">
+                <TabsTrigger value="avatar" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Icon name="UserCircle" size={14} className="mr-1" />Аватар
+                </TabsTrigger>
                 <TabsTrigger value="generate" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
                   <Icon name="Wand2" size={14} className="mr-1" />По описанию
                 </TabsTrigger>
@@ -77,9 +80,6 @@ export default function VideoPage() {
                 </TabsTrigger>
                 <TabsTrigger value="cartoon" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
                   <Icon name="Sparkles" size={14} className="mr-1" />Мультфильм
-                </TabsTrigger>
-                <TabsTrigger value="avatar" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
-                  <Icon name="UserCircle" size={14} className="mr-1" />Аватар
                 </TabsTrigger>
               </TabsList>
 
