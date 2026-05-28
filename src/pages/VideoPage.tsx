@@ -8,7 +8,7 @@ import { Slider } from "@/components/ui/slider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+
 import Icon from "@/components/ui/icon"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -29,7 +29,7 @@ export default function VideoPage() {
   const [selectedAvatar, setSelectedAvatar] = useState("")
   const [avatarVoice, setAvatarVoice] = useState("female")
   const [avatarLang, setAvatarLang] = useState("ru")
-  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
+  const [showAvatarPanel, setShowAvatarPanel] = useState(false)
   const photoRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLInputElement>(null)
   const avatarPhotoRef = useRef<HTMLInputElement>(null)
@@ -51,6 +51,81 @@ export default function VideoPage() {
       })
     }, 3000)
   }
+
+  const avatarPanel = showAvatarPanel && (
+    <div className="mt-4 border border-primary/30 rounded-xl bg-primary/5 p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-white text-sm font-medium flex items-center gap-2">
+          <Icon name="UserCircle" size={15} className="text-primary" />
+          Озвучить аватаром
+        </span>
+        <button onClick={() => setShowAvatarPanel(false)} className="text-muted-foreground hover:text-white transition-colors">
+          <Icon name="X" size={15} />
+        </button>
+      </div>
+
+      <div>
+        <Label className="text-muted-foreground text-xs mb-1.5 block">Текст для озвучивания</Label>
+        <Textarea
+          placeholder="Введите текст, который аватар произнесёт на видео..."
+          value={avatarText}
+          onChange={(e) => setAvatarText(e.target.value)}
+          rows={3}
+          className="bg-background border-border text-white placeholder:text-muted-foreground resize-none text-sm"
+        />
+        <span className="text-muted-foreground text-xs mt-1 block">{avatarText.split(" ").filter(Boolean).length} слов</span>
+      </div>
+
+      <div>
+        <Label className="text-muted-foreground text-xs mb-1.5 block">Аватар</Label>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { id: "anna", emoji: "👩‍💼", name: "Анна" },
+            { id: "alex", emoji: "👨‍💻", name: "Алекс" },
+            { id: "maria", emoji: "👩‍🎤", name: "Мария" },
+            { id: "igor", emoji: "👨‍🏫", name: "Игорь" },
+            { id: "sofia", emoji: "👩‍⚕️", name: "София" },
+            { id: "dan", emoji: "🧑‍🎯", name: "Дэн" },
+            { id: "kira", emoji: "🤖", name: "Кира AI" },
+            { id: "custom", emoji: "📸", name: "Своё фото" },
+          ].map((a) => (
+            <div
+              key={a.id}
+              onClick={() => { setSelectedAvatar(a.id); if (a.id === "custom") avatarPhotoRef.current?.click() }}
+              className={`rounded-lg border-2 p-2 cursor-pointer text-center transition-all ${selectedAvatar === a.id ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"}`}
+            >
+              <div className="text-xl mb-0.5">{a.emoji}</div>
+              <p className="text-white text-xs leading-tight">{a.name}</p>
+            </div>
+          ))}
+        </div>
+        <input ref={avatarPhotoRef} type="file" accept="image/*" className="hidden" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-muted-foreground text-xs mb-1.5 block flex items-center gap-1"><Icon name="Mic" size={12} className="text-primary" />Голос</Label>
+          <div className="space-y-1">
+            {[{ id: "female", label: "Женский", emoji: "👩" }, { id: "male", label: "Мужской", emoji: "👨" }, { id: "neutral", label: "Нейтральный", emoji: "🤖" }].map((v) => (
+              <div key={v.id} onClick={() => setAvatarVoice(v.id)} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border cursor-pointer text-xs transition-all ${avatarVoice === v.id ? "border-primary bg-primary/10 text-white" : "border-border text-muted-foreground hover:border-primary/50"}`}>
+                <span>{v.emoji}</span>{v.label}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label className="text-muted-foreground text-xs mb-1.5 block flex items-center gap-1"><Icon name="Globe" size={12} className="text-primary" />Язык</Label>
+          <div className="space-y-1">
+            {[{ id: "ru", label: "Русский", flag: "🇷🇺" }, { id: "en", label: "English", flag: "🇬🇧" }, { id: "es", label: "Español", flag: "🇪🇸" }, { id: "zh", label: "中文", flag: "🇨🇳" }].map((l) => (
+              <div key={l.id} onClick={() => setAvatarLang(l.id)} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border cursor-pointer text-xs transition-all ${avatarLang === l.id ? "border-primary bg-primary/10 text-white" : "border-border text-muted-foreground hover:border-primary/50"}`}>
+                <span>{l.flag}</span>{l.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="dark min-h-screen bg-background">
@@ -86,7 +161,7 @@ export default function VideoPage() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="generate">
+              <TabsContent value="generate" className="space-y-0">
                 <Card className="bg-card border-border">
                   <CardContent className="pt-5">
                     <Label className="text-muted-foreground text-sm mb-2 block">Описание видео</Label>
@@ -97,15 +172,16 @@ export default function VideoPage() {
                       rows={4}
                       className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
                     />
-                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setAvatarDialogOpen(true)}>
+                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setShowAvatarPanel(p => !p)}>
                       <Icon name="UserCircle" size={14} />
-                      Озвучить аватаром
+                      {showAvatarPanel ? "Скрыть аватара" : "Озвучить аватаром"}
                     </Button>
+                    {avatarPanel}
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="from-photo">
+              <TabsContent value="from-photo" className="space-y-0">
                 <Card className="bg-card border-border">
                   <CardContent className="pt-5">
                     <div
@@ -132,15 +208,16 @@ export default function VideoPage() {
                         }}
                       />
                     </div>
-                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setAvatarDialogOpen(true)}>
+                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setShowAvatarPanel(p => !p)}>
                       <Icon name="UserCircle" size={14} />
-                      Озвучить аватаром
+                      {showAvatarPanel ? "Скрыть аватара" : "Озвучить аватаром"}
                     </Button>
+                    {avatarPanel}
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="edit">
+              <TabsContent value="edit" className="space-y-0">
                 <Card className="bg-card border-border">
                   <CardContent className="pt-5">
                     <div
@@ -169,14 +246,15 @@ export default function VideoPage() {
                         }}
                       />
                     </div>
-                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setAvatarDialogOpen(true)}>
+                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setShowAvatarPanel(p => !p)}>
                       <Icon name="UserCircle" size={14} />
-                      Озвучить аватаром
+                      {showAvatarPanel ? "Скрыть аватара" : "Озвучить аватаром"}
                     </Button>
+                    {avatarPanel}
                   </CardContent>
                 </Card>
               </TabsContent>
-              <TabsContent value="cartoon">
+              <TabsContent value="cartoon" className="space-y-0">
                 <Card className="bg-card border-border">
                   <CardContent className="pt-5 space-y-4">
                     <div>
@@ -211,10 +289,11 @@ export default function VideoPage() {
                         ))}
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setAvatarDialogOpen(true)}>
+                    <Button variant="outline" size="sm" className="border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setShowAvatarPanel(p => !p)}>
                       <Icon name="UserCircle" size={14} />
-                      Озвучить аватаром
+                      {showAvatarPanel ? "Скрыть аватара" : "Озвучить аватаром"}
                     </Button>
+                    {avatarPanel}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -475,103 +554,6 @@ export default function VideoPage() {
       </main>
       <Footer />
 
-      {/* === Диалог озвучки аватаром === */}
-      <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
-        <DialogContent className="bg-card border-border text-white max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <Icon name="UserCircle" size={18} className="text-primary" />
-              Озвучить аватаром
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-5 mt-2">
-            {/* Текст */}
-            <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Текст для озвучивания</Label>
-              <Textarea
-                placeholder="Введите текст, который аватар произнесёт на видео..."
-                value={avatarText}
-                onChange={(e) => setAvatarText(e.target.value)}
-                rows={4}
-                className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
-              />
-              <span className="text-muted-foreground text-xs mt-1 block">{avatarText.split(" ").filter(Boolean).length} слов</span>
-            </div>
-
-            {/* Аватар */}
-            <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Аватар</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { id: "anna", emoji: "👩‍💼", name: "Анна" },
-                  { id: "alex", emoji: "👨‍💻", name: "Алекс" },
-                  { id: "maria", emoji: "👩‍🎤", name: "Мария" },
-                  { id: "igor", emoji: "👨‍🏫", name: "Игорь" },
-                  { id: "sofia", emoji: "👩‍⚕️", name: "София" },
-                  { id: "dan", emoji: "🧑‍🎯", name: "Дэн" },
-                  { id: "kira", emoji: "🤖", name: "Кира AI", badge: "Хит" },
-                  { id: "custom", emoji: "📸", name: "Своё фото" },
-                ].map((a) => (
-                  <div
-                    key={a.id}
-                    onClick={() => { setSelectedAvatar(a.id); if (a.id === "custom") avatarPhotoRef.current?.click() }}
-                    className={`rounded-xl border-2 p-2 cursor-pointer text-center transition-all relative ${
-                      selectedAvatar === a.id ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    {a.badge && <span className="absolute -top-2 -right-2 text-xs bg-primary text-white px-1.5 py-0.5 rounded-full">{a.badge}</span>}
-                    <div className="text-2xl mb-1">{a.emoji}</div>
-                    <p className="text-white text-xs font-medium leading-tight">{a.name}</p>
-                  </div>
-                ))}
-              </div>
-              <input ref={avatarPhotoRef} type="file" accept="image/*" className="hidden" />
-            </div>
-
-            {/* Голос + Язык */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-muted-foreground text-sm mb-2 block flex items-center gap-1">
-                  <Icon name="Mic" size={13} className="text-primary" />Голос
-                </Label>
-                <div className="space-y-1.5">
-                  {[{ id: "female", label: "Женский", emoji: "👩" }, { id: "male", label: "Мужской", emoji: "👨" }, { id: "neutral", label: "Нейтральный", emoji: "🤖" }].map((v) => (
-                    <div key={v.id} onClick={() => setAvatarVoice(v.id)} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer text-sm transition-all ${avatarVoice === v.id ? "border-primary bg-primary/10 text-white" : "border-border text-muted-foreground hover:border-primary/50"}`}>
-                      <span>{v.emoji}</span>{v.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label className="text-muted-foreground text-sm mb-2 block flex items-center gap-1">
-                  <Icon name="Globe" size={13} className="text-primary" />Язык
-                </Label>
-                <div className="space-y-1.5">
-                  {[{ id: "ru", label: "Русский", flag: "🇷🇺" }, { id: "en", label: "English", flag: "🇬🇧" }, { id: "es", label: "Español", flag: "🇪🇸" }, { id: "zh", label: "中文", flag: "🇨🇳" }].map((l) => (
-                    <div key={l.id} onClick={() => setAvatarLang(l.id)} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer text-sm transition-all ${avatarLang === l.id ? "border-primary bg-primary/10 text-white" : "border-border text-muted-foreground hover:border-primary/50"}`}>
-                      <span>{l.flag}</span>{l.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <Button
-              className="w-full bg-primary hover:bg-primary/90 text-white gap-2"
-              disabled={!avatarText.trim()}
-              onClick={() => {
-                setAvatarDialogOpen(false)
-                setIsGenerating(true)
-                setTimeout(() => { setIsGenerating(false); setGenerated(true) }, 3000)
-              }}
-            >
-              <Icon name="Wand2" size={15} />
-              Создать видео с аватаром
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
