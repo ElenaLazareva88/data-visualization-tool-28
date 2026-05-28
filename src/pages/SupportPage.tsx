@@ -62,7 +62,7 @@ const TOPICS = [
 
 export default function SupportPage() {
   const [chatMessages, setChatMessages] = useState([
-    { from: "support", text: "Привет! Я — AI-ассистент AI Studio. Чем могу помочь? Задайте вопрос — отвечу мгновенно или передам живому специалисту.", time: "сейчас" },
+    { from: "support", text: "Привет! Я — Кира, AI-ассистент AI Studio. Чем могу помочь? Задайте вопрос — отвечу мгновенно или передам живому специалисту.", time: "сейчас" },
   ])
   const [chatInput, setChatInput] = useState("")
   const [ticketForm, setTicketForm] = useState({ email: "", topic: "", message: "" })
@@ -95,7 +95,7 @@ export default function SupportPage() {
             <Icon name="LifeBuoy" size={28} className="text-primary" />
             <h1 className="text-3xl font-bold text-white font-orbitron">Поддержка</h1>
           </div>
-          <p className="text-muted-foreground">Чат с поддержкой, AI-ассистент и база знаний</p>
+          <p className="text-muted-foreground">Чат с поддержкой, AI Кира-ассистент и база знаний</p>
         </div>
 
         <Tabs defaultValue="chat">
@@ -122,7 +122,7 @@ export default function SupportPage() {
                         <Icon name="Bot" size={18} className="text-primary" />
                       </div>
                       <div>
-                        <CardTitle className="text-white text-base">AI-ассистент</CardTitle>
+                        <CardTitle className="text-white text-base">AI Кира-ассистент</CardTitle>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <div className="w-2 h-2 bg-green-500 rounded-full" />
                           <span className="text-muted-foreground text-xs">Онлайн · обычно отвечает за 1 мин</span>
@@ -168,7 +168,7 @@ export default function SupportPage() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-white text-sm flex items-center gap-2">
                       <Icon name="Lightbulb" size={16} className="text-primary" />
-                      Подсказка AI
+                      Подсказка от Киры
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
