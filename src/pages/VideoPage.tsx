@@ -15,6 +15,7 @@ import { Footer } from "@/components/footer"
 const EFFECTS = ["Плавный переход", "Зум", "Затухание", "Вспышка", "Панорама", "Кинематограф"]
 
 export default function VideoPage() {
+  const [activeTab, setActiveTab] = useState("avatar")
   const [description, setDescription] = useState("")
   const [format, setFormat] = useState("vertical")
   const [selectedEffects, setSelectedEffects] = useState<string[]>([])
@@ -64,7 +65,7 @@ export default function VideoPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-5">
 
-            <Tabs defaultValue="avatar" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full bg-card border border-border mb-4 flex-wrap h-auto gap-1 p-1">
                 <TabsTrigger value="avatar" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
                   <Icon name="UserCircle" size={14} className="mr-1" />Аватар
@@ -94,6 +95,10 @@ export default function VideoPage() {
                       rows={4}
                       className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
                     />
+                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setActiveTab("avatar")}>
+                      <Icon name="UserCircle" size={14} />
+                      Озвучить аватаром
+                    </Button>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -125,6 +130,10 @@ export default function VideoPage() {
                         }}
                       />
                     </div>
+                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setActiveTab("avatar")}>
+                      <Icon name="UserCircle" size={14} />
+                      Озвучить аватаром
+                    </Button>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -158,6 +167,10 @@ export default function VideoPage() {
                         }}
                       />
                     </div>
+                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setActiveTab("avatar")}>
+                      <Icon name="UserCircle" size={14} />
+                      Озвучить аватаром
+                    </Button>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -196,6 +209,10 @@ export default function VideoPage() {
                         ))}
                       </div>
                     </div>
+                    <Button variant="outline" size="sm" className="mt-3 border-primary/50 text-primary hover:bg-primary/10 gap-2" onClick={() => setActiveTab("avatar")}>
+                      <Icon name="UserCircle" size={14} />
+                      Озвучить аватаром
+                    </Button>
                   </CardContent>
                 </Card>
               </TabsContent>
