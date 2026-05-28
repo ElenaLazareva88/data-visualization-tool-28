@@ -23,8 +23,13 @@ export default function VideoPage() {
   const [generated, setGenerated] = useState(false)
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null)
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null)
+  const [avatarText, setAvatarText] = useState("")
+  const [selectedAvatar, setSelectedAvatar] = useState("")
+  const [avatarVoice, setAvatarVoice] = useState("female")
+  const [avatarLang, setAvatarLang] = useState("ru")
   const photoRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLInputElement>(null)
+  const avatarPhotoRef = useRef<HTMLInputElement>(null)
 
   const toggleEffect = (e: string) => {
     setSelectedEffects(prev => prev.includes(e) ? prev.filter(x => x !== e) : [...prev, e])
@@ -72,6 +77,9 @@ export default function VideoPage() {
                 </TabsTrigger>
                 <TabsTrigger value="cartoon" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
                   <Icon name="Sparkles" size={14} className="mr-1" />Мультфильм
+                </TabsTrigger>
+                <TabsTrigger value="avatar" className="flex-1 text-xs data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Icon name="UserCircle" size={14} className="mr-1" />Аватар
                 </TabsTrigger>
               </TabsList>
 
@@ -191,6 +199,130 @@ export default function VideoPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* === АВАТАРЫ === */}
+              <TabsContent value="avatar" className="space-y-4">
+                <Card className="glow-border bg-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-white flex items-center gap-2">
+                      <Icon name="FileText" size={16} className="text-primary" />
+                      Текст для озвучивания
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      placeholder="Введите текст, который аватар произнесёт на видео... например: «Привет! Сегодня расскажу вам о нашем новом продукте — он поможет сэкономить время и деньги»"
+                      value={avatarText}
+                      onChange={(e) => setAvatarText(e.target.value)}
+                      rows={5}
+                      className="bg-background border-border text-white placeholder:text-muted-foreground resize-none"
+                    />
+                    <div className="flex justify-between mt-2">
+                      <span className="text-muted-foreground text-xs">Оптимально 50–500 слов</span>
+                      <span className={`text-xs ${avatarText.length > 20 ? "text-green-400" : "text-muted-foreground"}`}>{avatarText.split(" ").filter(Boolean).length} слов</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Выбор аватара */}
+                <Card className="bg-card border-border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base text-white flex items-center gap-2">
+                      <Icon name="Users" size={16} className="text-primary" />
+                      Выбери аватара
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+                      {[
+                        { id: "anna", emoji: "👩‍💼", name: "Анна", style: "Деловой" },
+                        { id: "alex", emoji: "👨‍💻", name: "Алекс", style: "Технологичный" },
+                        { id: "maria", emoji: "👩‍🎤", name: "Мария", style: "Творческий" },
+                        { id: "igor", emoji: "👨‍🏫", name: "Игорь", style: "Обучающий" },
+                        { id: "sofia", emoji: "👩‍⚕️", name: "София", style: "Медицина" },
+                        { id: "dan", emoji: "🧑‍🎯", name: "Дэн", style: "Спорт" },
+                        { id: "kira", emoji: "🤖", name: "Кира AI", style: "ИИ-ассистент", badge: "Хит" },
+                        { id: "custom", emoji: "📸", name: "Своё фото", style: "Загрузить" },
+                      ].map((a) => (
+                        <div
+                          key={a.id}
+                          onClick={() => { setSelectedAvatar(a.id); if (a.id === "custom") avatarPhotoRef.current?.click() }}
+                          className={`rounded-xl border-2 p-3 cursor-pointer text-center transition-all relative ${
+                            selectedAvatar === a.id ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          {a.badge && (
+                            <span className="absolute -top-2 -right-2 text-xs bg-primary text-white px-1.5 py-0.5 rounded-full">{a.badge}</span>
+                          )}
+                          <div className="text-3xl mb-1">{a.emoji}</div>
+                          <p className="text-white text-xs font-medium">{a.name}</p>
+                          <p className="text-muted-foreground text-xs">{a.style}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <input ref={avatarPhotoRef} type="file" accept="image/*" className="hidden" />
+                  </CardContent>
+                </Card>
+
+                {/* Голос и язык */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="bg-card border-border">
+                    <CardContent className="pt-5">
+                      <Label className="text-white font-medium mb-3 block flex items-center gap-2">
+                        <Icon name="Mic" size={15} className="text-primary" />
+                        Голос
+                      </Label>
+                      <div className="space-y-2">
+                        {[
+                          { id: "female", label: "Женский", emoji: "👩" },
+                          { id: "male", label: "Мужской", emoji: "👨" },
+                          { id: "neutral", label: "Нейтральный", emoji: "🤖" },
+                        ].map((v) => (
+                          <div
+                            key={v.id}
+                            onClick={() => setAvatarVoice(v.id)}
+                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
+                              avatarVoice === v.id ? "border-primary bg-primary/10 text-white" : "border-border text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            <span>{v.emoji}</span>
+                            <span className="text-sm">{v.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-card border-border">
+                    <CardContent className="pt-5">
+                      <Label className="text-white font-medium mb-3 block flex items-center gap-2">
+                        <Icon name="Globe" size={15} className="text-primary" />
+                        Язык
+                      </Label>
+                      <div className="space-y-2">
+                        {[
+                          { id: "ru", label: "Русский", flag: "🇷🇺" },
+                          { id: "en", label: "English", flag: "🇬🇧" },
+                          { id: "es", label: "Español", flag: "🇪🇸" },
+                          { id: "zh", label: "中文", flag: "🇨🇳" },
+                        ].map((l) => (
+                          <div
+                            key={l.id}
+                            onClick={() => setAvatarLang(l.id)}
+                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
+                              avatarLang === l.id ? "border-primary bg-primary/10 text-white" : "border-border text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            <span>{l.flag}</span>
+                            <span className="text-sm">{l.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
             </Tabs>
 
             {/* Format */}
