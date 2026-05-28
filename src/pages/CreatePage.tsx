@@ -74,6 +74,16 @@ const TOOLS = [
     border: "border-orange-500/30 hover:border-orange-400",
     badge: "Новый",
   },
+  {
+    path: "/presentation",
+    icon: "MonitorPlay",
+    emoji: "📊",
+    label: "Презентации",
+    desc: "Вставь текст — Кира автоматически оформит красивые слайды",
+    color: "from-cyan-500/20 to-cyan-900/10",
+    border: "border-cyan-500/30 hover:border-cyan-400",
+    badge: "Новый",
+  },
 ]
 
 export default function CreatePage() {
