@@ -54,6 +54,7 @@ export function Footer() {
                   { label: "Работа с фото", path: "/photo" },
                   { label: "Написание текстов", path: "/text" },
                   { label: "Джинглы", path: "/jingle" },
+                  { label: "Презентации", path: "/presentation" },
                 ].map((l) => (
                   <li key={l.path}>
                     <Link to={l.path} className="font-space-mono text-gray-400 hover:text-red-500 transition-colors duration-200 text-sm">
