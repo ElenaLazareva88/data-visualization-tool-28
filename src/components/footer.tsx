@@ -25,7 +25,7 @@ export function Footer() {
                 </h2>
               </Link>
               <p className="font-space-mono text-gray-300 mb-6 max-w-md">
-                Раскрой свой творческий потенциал с AI Studio — музыка, видео, фото, тексты и джинглы в одной платформе.
+                Привет-привет! Я Кира. Рада видеть тебя здесь — самое время для крутых идей! ✨
               </p>
               <div className="flex space-x-3">
                 {SOCIAL_LINKS.map((s) => (
