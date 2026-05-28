@@ -21,7 +21,7 @@ export function Footer() {
             <div className="col-span-1 md:col-span-2">
               <Link to="/">
                 <h2 className="font-orbitron text-2xl font-bold text-white mb-4">
-                  AI<span className="text-red-500"> Studio</span>
+                  ИИ<span className="text-red-500"> Кира</span>
                 </h2>
               </Link>
               <p className="font-space-mono text-gray-300 mb-6 max-w-md">
@@ -90,7 +90,7 @@ export function Footer() {
           {/* Bottom Bar */}
           <div className="mt-8 pt-8 border-t border-red-500/20">
             <div className="flex flex-col md:flex-row justify-between items-center">
-              <p className="font-space-mono text-gray-400 text-sm">© 2025 AI Studio. Все права защищены.</p>
+              <p className="font-space-mono text-gray-400 text-sm">© 2025 ИИ Кира. Все права защищены.</p>
               <div className="flex space-x-6 mt-4 md:mt-0">
                 <Link to="/privacy" className="font-space-mono text-gray-400 hover:text-red-500 text-sm transition-colors duration-200">
                   Конфиденциальность

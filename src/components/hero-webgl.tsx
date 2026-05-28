@@ -160,7 +160,7 @@ const CanvasWithTextures = () => {
 }
 
 export const Hero3DWebGL = () => {
-  const titleWords = "AI Studio".split(" ")
+  const titleWords = "ИИ Кира".split(" ")
   const subtitle = "Привет-привет! Я Кира. Рада видеть тебя здесь — самое время для крутых идей! ✨"
   const [visibleWords, setVisibleWords] = useState(0)
   const [subtitleVisible, setSubtitleVisible] = useState(false)

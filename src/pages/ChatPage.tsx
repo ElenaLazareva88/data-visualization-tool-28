@@ -8,7 +8,7 @@ import { Navbar } from "@/components/navbar"
 
 const CHATS = [
   { id: 1, name: "Иван Петров", type: "personal", last: "Привет! Как дела?", time: "12:30", unread: 2, online: true },
-  { id: 2, name: "Команда AI Studio", type: "group", last: "Новый трек загружен", time: "11:45", unread: 5, online: false },
+  { id: 2, name: "Команда ИИ Кира", type: "group", last: "Новый трек загружен", time: "11:45", unread: 5, online: false },
   { id: 3, name: "Музыканты Pro", type: "channel", last: "Урок: создание бита", time: "Вчера", unread: 0, online: false },
   { id: 4, name: "Мария Сидорова", type: "personal", last: "Отличная работа!", time: "Вчера", unread: 0, online: true },
   { id: 5, name: "Дизайнеры", type: "group", last: "Поделитесь шаблоном", time: "Пн", unread: 1, online: false },
@@ -16,7 +16,7 @@ const CHATS = [
 
 const MESSAGES = [
   { id: 1, from: "other", name: "Иван Петров", text: "Привет! Видел твой новый трек — просто огонь 🔥", time: "12:15" },
-  { id: 2, from: "me", text: "Спасибо! Сделал на AI Studio за 10 минут", time: "12:17" },
+  { id: 2, from: "me", text: "Спасибо! Сделал на ИИ Кира за 10 минут", time: "12:17" },
   { id: 3, from: "other", name: "Иван Петров", text: "Не может быть! Какой стиль использовал?", time: "12:20" },
   { id: 4, from: "me", text: "Электронный + немного джаза. Попробуй сам, это реально работает", time: "12:25" },
   { id: 5, from: "other", name: "Иван Петров", text: "Буду пробовать! Как дела?", time: "12:30" },

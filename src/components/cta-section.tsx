@@ -8,7 +8,7 @@ export function CTASection() {
         <div className="slide-up">
           <h2 className="text-5xl font-bold text-black mb-6 font-sans text-balance">Готов раскрыть свой творческий потенциал?</h2>
           <p className="text-xl text-muted-foreground mb-10 leading-relaxed max-w-2xl mx-auto">
-            Присоединяйся к тысячам авторов, музыкантов и предпринимателей, которые уже создают контент с помощью AI Studio. Начни бесплатно прямо сейчас.
+            Присоединяйся к тысячам авторов, музыкантов и предпринимателей, которые уже создают контент с помощью ИИ Кира. Начни бесплатно прямо сейчас.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/music">

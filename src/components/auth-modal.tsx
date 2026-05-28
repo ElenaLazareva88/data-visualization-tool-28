@@ -176,10 +176,10 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
         <DialogContent className="dark bg-card border border-border text-white max-w-md w-full mx-4">
           <DialogHeader>
             <DialogTitle className="text-center font-orbitron text-xl text-white">
-              AI<span className="text-red-500"> Studio</span>
+              ИИ<span className="text-red-500"> Кира</span>
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Форма входа и регистрации в AI Studio
+              Форма входа и регистрации в ИИ Кира
             </DialogDescription>
           </DialogHeader>
 

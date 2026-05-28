@@ -62,7 +62,7 @@ const TOPICS = [
 
 export default function SupportPage() {
   const [chatMessages, setChatMessages] = useState([
-    { from: "support", text: "Привет! Я — Кира, AI-ассистент AI Studio. Чем могу помочь? Задайте вопрос — отвечу мгновенно или передам живому специалисту.", time: "сейчас" },
+    { from: "support", text: "Привет! Я — Кира, ИИ-ассистент ИИ Кира. Чем могу помочь? Задайте вопрос — отвечу мгновенно или передам живому специалисту.", time: "сейчас" },
   ])
   const [chatInput, setChatInput] = useState("")
   const [ticketForm, setTicketForm] = useState({ email: "", topic: "", message: "" })

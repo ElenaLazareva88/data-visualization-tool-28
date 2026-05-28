@@ -7,7 +7,7 @@ const testimonials = [
     role: "Музыкальный продюсер",
     avatar: "/cybersecurity-expert-man.jpg",
     content:
-      "AI Studio полностью изменил мой рабочий процесс. Раньше на создание демо уходили дни — теперь генерирую трек за 10 минут и сразу отправляю клиенту.",
+      "ИИ Кира полностью изменила мой рабочий процесс. Раньше на создание демо уходили дни — теперь генерирую трек за 10 минут и сразу отправляю клиенту.",
   },
   {
     name: "Мария Соколова",
@@ -32,7 +32,7 @@ export function TestimonialsSection() {
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-card-foreground mb-4 font-sans">Что говорят пользователи</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Реальные отзывы людей, которые создают контент с AI Studio каждый день
+            Реальные отзывы людей, которые создают контент с ИИ Кира каждый день
           </p>
         </div>
 

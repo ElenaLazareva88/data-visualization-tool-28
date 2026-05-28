@@ -14,7 +14,7 @@ export default function PaymentSuccess() {
           </div>
           <h1 className="text-3xl font-bold text-white font-orbitron mb-3">Оплата прошла!</h1>
           <p className="text-muted-foreground text-lg mb-2">Подписка успешно активирована</p>
-          <p className="text-muted-foreground text-sm mb-8">Чек отправлен на ваш email. Все инструменты AI Studio теперь доступны.</p>
+          <p className="text-muted-foreground text-sm mb-8">Чек отправлен на ваш email. Все инструменты ИИ Кира теперь доступны.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/music">
               <Button className="bg-primary hover:bg-primary/90 text-white">

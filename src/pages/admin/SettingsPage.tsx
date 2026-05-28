@@ -8,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Icon from "@/components/ui/icon"
 
 export default function SettingsPage() {
-  const [siteName, setSiteName] = useState("AI Studio")
-  const [siteEmail, setSiteEmail] = useState("support@aistudio.ru")
+  const [siteName, setSiteName] = useState("ИИ Кира")
+  const [siteEmail, setSiteEmail] = useState("support@iikira.ru")
   const [twofa, setTwofa] = useState(false)
   const [maxLoginAttempts, setMaxLoginAttempts] = useState("5")
   const [saved, setSaved] = useState(false)
