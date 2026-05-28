@@ -156,7 +156,7 @@ export function Navbar() {
             {/* Logo */}
             <Link to="/" className="flex-shrink-0">
               <h1 className="font-orbitron text-xl font-bold text-white">
-                AI<span className="text-red-500"> Studio</span>
+                ИИ<span className="text-red-500"> Кира</span>
               </h1>
             </Link>
 
