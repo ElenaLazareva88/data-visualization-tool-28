@@ -40,6 +40,7 @@ import InvitePage from "./pages/InvitePage";
 import LogoPage from "./pages/LogoPage";
 import CreatePage from "./pages/CreatePage";
 import PresentationPage from "./pages/PresentationPage";
+import { ProtectedRoute } from "./components/protected-route";
 
 const queryClient = new QueryClient();
 
@@ -58,14 +59,14 @@ const App = () => (
           <Route path="/photo" element={<PhotoPage />} />
           <Route path="/text" element={<TextPage />} />
           <Route path="/jingle" element={<JinglePage />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+          <Route path="/community" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/collab" element={<CollabPage />} />
-          <Route path="/learn" element={<LearnPage />} />
+          <Route path="/collab" element={<ProtectedRoute><CollabPage /></ProtectedRoute>} />
+          <Route path="/learn" element={<ProtectedRoute><LearnPage /></ProtectedRoute>} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/support" element={<SupportPage />} />
+          <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/cookie-policy" element={<CookiePolicyPage />} />
           <Route path="/terms" element={<TermsPage />} />
