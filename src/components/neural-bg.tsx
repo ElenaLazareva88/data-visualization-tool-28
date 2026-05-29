@@ -12,9 +12,6 @@ interface Neuron {
   originCorner: number
 }
 
-const RED_COLORS = ["#ff2244", "#ff0033", "#ff3355"]
-const BLUE_COLORS = ["#0066ff", "#0044ee", "#2255ff"]
-
 function initNeuron(W: number, H: number, corner: number): Neuron {
   const spread = 0.35
   let startX = 0, startY = 0
@@ -24,11 +21,11 @@ function initNeuron(W: number, H: number, corner: number): Neuron {
     case 0: startX = Math.random() * W * spread; startY = Math.random() * H * spread; vxBase = 0.4; vyBase = 0.4; break
     case 1: startX = W - Math.random() * W * spread; startY = Math.random() * H * spread; vxBase = -0.4; vyBase = 0.4; break
     case 2: startX = Math.random() * W * spread; startY = H - Math.random() * H * spread; vxBase = 0.4; vyBase = -0.4; break
-    case 3: startX = W - Math.random() * W * spread; startY = H - Math.random() * H * spread; vxBase = -0.4; vyBase = -0.4; break
+    default: startX = W - Math.random() * W * spread; startY = H - Math.random() * H * spread; vxBase = -0.4; vyBase = -0.4; break
   }
 
   const angle = (Math.random() - 0.5) * Math.PI * 0.6
-  const speed = 0.25 + Math.random() * 0.35
+  const speed = 0.2 + Math.random() * 0.3
   const cos = Math.cos(angle), sin = Math.sin(angle)
 
   return {
@@ -36,12 +33,23 @@ function initNeuron(W: number, H: number, corner: number): Neuron {
     y: startY,
     vx: (vxBase * cos - vyBase * sin) * speed,
     vy: (vxBase * sin + vyBase * cos) * speed,
-    radius: 2 + Math.random() * 2.5,
+    radius: 1.5 + Math.random() * 2,
     color: corner === 0 || corner === 3 ? "red" : "blue",
     pulsePhase: Math.random() * Math.PI * 2,
-    pulseSpeed: 0.03 + Math.random() * 0.04,
+    pulseSpeed: 0.025 + Math.random() * 0.03,
     originCorner: corner,
   }
+}
+
+// Определяем уровень производительности устройства
+function detectPerformanceTier(): "low" | "mid" | "high" {
+  const cores = navigator.hardwareConcurrency || 2
+  const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory || 2
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent)
+
+  if (isMobile || cores <= 2 || mem <= 2) return "low"
+  if (cores <= 4 || mem <= 4) return "mid"
+  return "high"
 }
 
 export function NeuralBg() {
@@ -51,24 +59,32 @@ export function NeuralBg() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext("2d")
+    const ctx = canvas.getContext("2d", { alpha: false })
     if (!ctx) return
+
+    const tier = detectPerformanceTier()
+
+    // Параметры по уровню железа
+    const config = {
+      low:  { countDiv: 28000, maxCount: 40,  maxDist: 0.18, shadowBlurBase: 0,  shadowBlurLine: 0,  glowRadius: 2, trailAlpha: 0.18, particleChance: 0,     skipFrames: 2 },
+      mid:  { countDiv: 20000, maxCount: 65,  maxDist: 0.20, shadowBlurBase: 6,  shadowBlurLine: 5,  glowRadius: 3, trailAlpha: 0.15, particleChance: 0.001, skipFrames: 1 },
+      high: { countDiv: 14000, maxCount: 100, maxDist: 0.22, shadowBlurBase: 14, shadowBlurLine: 10, glowRadius: 5, trailAlpha: 0.13, particleChance: 0.003, skipFrames: 0 },
+    }[tier]
 
     let W = canvas.offsetWidth
     let H = canvas.offsetHeight
-    canvas.width = W
-    canvas.height = H
 
-    const NEURON_COUNT = Math.min(Math.floor((W * H) / 14000), 110)
-    const MAX_DIST = Math.min(W, H) * 0.22
-    const CENTER_PULL = 0.0012
-    const DAMPING = 0.998
-    // Радиус отталкивания мышью
-    const MOUSE_RADIUS = 130
-    // Сила притяжения к мыши
-    const MOUSE_ATTRACT = 0.0018
-    // Сила отталкивания при близком расстоянии
-    const MOUSE_REPEL = 0.008
+    // На слабых — рендерим в половину разрешения
+    const scale = tier === "low" ? 0.5 : tier === "mid" ? 0.75 : 1
+    canvas.width = Math.floor(W * scale)
+    canvas.height = Math.floor(H * scale)
+    ctx.scale(scale, scale)
+
+    const NEURON_COUNT = Math.min(Math.floor((W * H) / config.countDiv), config.maxCount)
+    const MAX_DIST = Math.min(W, H) * config.maxDist
+    const CENTER_PULL = 0.0010
+    const DAMPING = 0.997
+    const MOUSE_RADIUS = 110
 
     const neurons: Neuron[] = []
     for (let corner = 0; corner < 4; corner++) {
@@ -80,19 +96,24 @@ export function NeuralBg() {
 
     let frameId: number
     let t = 0
+    let frameCount = 0
 
     function draw() {
+      frameId = requestAnimationFrame(draw)
+      frameCount++
+
+      // Пропускаем кадры на слабом железе
+      if (config.skipFrames > 0 && frameCount % (config.skipFrames + 1) !== 0) return
+
       t++
+      const mouse = mouseRef.current
 
       // Fade trail
-      ctx.fillStyle = "rgba(0,0,0,0.13)"
+      ctx.fillStyle = `rgba(0,0,0,${config.trailAlpha})`
       ctx.fillRect(0, 0, W, H)
-
-      const mouse = mouseRef.current
 
       // Update neurons
       for (const n of neurons) {
-        // Pull toward center
         const cdx = W / 2 - n.x
         const cdy = H / 2 - n.y
         const cdist = Math.sqrt(cdx * cdx + cdy * cdy)
@@ -100,44 +121,40 @@ export function NeuralBg() {
         n.vx += cdx * pull
         n.vy += cdy * pull
 
-        // Mouse interaction
-        if (mouse.active) {
+        // Mouse interaction (только mid и high)
+        if (mouse.active && tier !== "low") {
           const mdx = n.x - mouse.x
           const mdy = n.y - mouse.y
           const mdist = Math.sqrt(mdx * mdx + mdy * mdy)
 
           if (mdist < MOUSE_RADIUS && mdist > 1) {
-            // Близко — отталкиваем
-            const repelStr = MOUSE_REPEL * (1 - mdist / MOUSE_RADIUS)
+            const repelStr = 0.008 * (1 - mdist / MOUSE_RADIUS)
             n.vx += (mdx / mdist) * repelStr * 60
             n.vy += (mdy / mdist) * repelStr * 60
-          } else if (mdist < MOUSE_RADIUS * 3 && mdist > MOUSE_RADIUS) {
-            // Чуть дальше — лёгкое притяжение (нейроны тянутся к курсору)
-            const attractStr = MOUSE_ATTRACT * (1 - (mdist - MOUSE_RADIUS) / (MOUSE_RADIUS * 2))
-            n.vx -= (mdx / mdist) * attractStr * 30
-            n.vy -= (mdy / mdist) * attractStr * 30
+          } else if (mdist < MOUSE_RADIUS * 2.5 && mdist > MOUSE_RADIUS) {
+            const attractStr = 0.0015 * (1 - (mdist - MOUSE_RADIUS) / (MOUSE_RADIUS * 1.5))
+            n.vx -= (mdx / mdist) * attractStr * 25
+            n.vy -= (mdy / mdist) * attractStr * 25
           }
         }
 
         n.vx *= DAMPING
         n.vy *= DAMPING
-
-        // Slight random drift
-        n.vx += (Math.random() - 0.5) * 0.04
-        n.vy += (Math.random() - 0.5) * 0.04
+        n.vx += (Math.random() - 0.5) * 0.03
+        n.vy += (Math.random() - 0.5) * 0.03
 
         n.x += n.vx
         n.y += n.vy
         n.pulsePhase += n.pulseSpeed
 
-        // Soft bounce
-        if (n.x < 20) { n.x = 20; n.vx = Math.abs(n.vx) * 0.6 }
-        if (n.x > W - 20) { n.x = W - 20; n.vx = -Math.abs(n.vx) * 0.6 }
-        if (n.y < 20) { n.y = 20; n.vy = Math.abs(n.vy) * 0.6 }
-        if (n.y > H - 20) { n.y = H - 20; n.vy = -Math.abs(n.vy) * 0.6 }
+        if (n.x < 15) { n.x = 15; n.vx = Math.abs(n.vx) * 0.5 }
+        if (n.x > W - 15) { n.x = W - 15; n.vx = -Math.abs(n.vx) * 0.5 }
+        if (n.y < 15) { n.y = 15; n.vy = Math.abs(n.vy) * 0.5 }
+        if (n.y > H - 15) { n.y = H - 15; n.vy = -Math.abs(n.vy) * 0.5 }
       }
 
       // Draw connections
+      ctx.shadowBlur = 0
       for (let i = 0; i < neurons.length; i++) {
         for (let j = i + 1; j < neurons.length; j++) {
           const a = neurons[i], b = neurons[j]
@@ -147,49 +164,37 @@ export function NeuralBg() {
           if (d > MAX_DIST) continue
 
           const fade = 1 - d / MAX_DIST
-          const pulse = 0.5 + 0.5 * Math.sin(t * 0.03 + a.pulsePhase)
-
-          // Усиливаем линии рядом с мышью
-          let mouseBoost = 1
-          if (mouse.active) {
-            const mx = (a.x + b.x) / 2 - mouse.x
-            const my = (a.y + b.y) / 2 - mouse.y
-            const md = Math.sqrt(mx * mx + my * my)
-            if (md < MOUSE_RADIUS * 2) {
-              mouseBoost = 1 + 1.2 * (1 - md / (MOUSE_RADIUS * 2))
-            }
-          }
-
-          const alpha = fade * fade * (0.35 + 0.25 * pulse) * mouseBoost
+          // Пульс только на high
+          const pulse = tier === "high"
+            ? 0.5 + 0.5 * Math.sin(t * 0.03 + a.pulsePhase)
+            : 0.7
+          const alpha = fade * fade * (0.3 + 0.2 * pulse)
 
           const isSame = a.color === b.color
-          let lineColor: string
-          if (isSame && a.color === "red") {
-            lineColor = `rgba(255,30,50,${Math.min(alpha, 1)})`
-          } else if (isSame && a.color === "blue") {
-            lineColor = `rgba(0,100,255,${Math.min(alpha, 1)})`
-          } else {
-            lineColor = `rgba(140,60,255,${Math.min(alpha * 0.9, 1)})`
-          }
+          let r: number, g: number, bl: number
+          if (isSame && a.color === "red") { r = 255; g = 30; bl = 50 }
+          else if (isSame && a.color === "blue") { r = 0; g = 100; bl = 255 }
+          else { r = 140; g = 60; bl = 255 }
 
           ctx.beginPath()
           ctx.moveTo(a.x, a.y)
           ctx.lineTo(b.x, b.y)
-          ctx.strokeStyle = lineColor
-          ctx.lineWidth = (fade * 1.8 + 0.4) * Math.min(mouseBoost, 1.8)
-          ctx.shadowColor = isSame ? (a.color === "red" ? "#ff2244" : "#0066ff") : "#8844ff"
-          ctx.shadowBlur = (8 + 10 * fade * pulse) * Math.min(mouseBoost, 2)
+          ctx.strokeStyle = `rgba(${r},${g},${bl},${Math.min(alpha, 1)})`
+          ctx.lineWidth = fade * 1.5 + 0.3
+
+          if (config.shadowBlurLine > 0) {
+            ctx.shadowColor = isSame ? (a.color === "red" ? "#ff2244" : "#0066ff") : "#8844ff"
+            ctx.shadowBlur = config.shadowBlurLine * fade * pulse
+          }
           ctx.stroke()
 
-          // Flowing particle
-          if (Math.random() < 0.003 * mouseBoost) {
+          // Бегущие частицы — только high
+          if (config.particleChance > 0 && Math.random() < config.particleChance) {
+            ctx.shadowBlur = 0
             const pct = Math.sin(t * 0.05 + i * 0.3) * 0.5 + 0.5
-            const px = a.x + dx * pct
-            const py = a.y + dy * pct
             ctx.beginPath()
-            ctx.arc(px, py, 1.2 * mouseBoost, 0, Math.PI * 2)
-            ctx.fillStyle = lineColor.replace(/[\d.]+\)$/, "0.9)")
-            ctx.shadowBlur = 12
+            ctx.arc(a.x + dx * pct, a.y + dy * pct, 1.2, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(${r},${g},${bl},0.9)`
             ctx.fill()
           }
         }
@@ -199,82 +204,66 @@ export function NeuralBg() {
 
       // Draw neurons
       for (const n of neurons) {
-        const pulse = 0.6 + 0.4 * Math.sin(n.pulsePhase)
-        const r = n.radius * (0.85 + 0.3 * pulse)
-        const baseColor = n.color === "red" ? RED_COLORS[0] : BLUE_COLORS[0]
-        const glowColor = n.color === "red" ? "#ff0033" : "#0055ff"
+        const pulse = tier === "low"
+          ? 0.8
+          : 0.6 + 0.4 * Math.sin(n.pulsePhase)
+        const r = n.radius * (0.9 + 0.2 * pulse)
+        const isRed = n.color === "red"
 
-        // Mouse proximity boost на нейронах
-        let nBoost = 1
-        if (mouse.active) {
-          const md = Math.sqrt((n.x - mouse.x) ** 2 + (n.y - mouse.y) ** 2)
-          if (md < MOUSE_RADIUS * 2) nBoost = 1 + 0.8 * (1 - md / (MOUSE_RADIUS * 2))
+        // Внешнее свечение — только mid и high
+        if (config.glowRadius > 2) {
+          const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * config.glowRadius)
+          grd.addColorStop(0, isRed
+            ? `rgba(255,30,50,${0.35 * pulse})`
+            : `rgba(0,80,255,${0.35 * pulse})`)
+          grd.addColorStop(1, "rgba(0,0,0,0)")
+          ctx.beginPath()
+          ctx.arc(n.x, n.y, r * config.glowRadius, 0, Math.PI * 2)
+          ctx.fillStyle = grd
+          ctx.fill()
         }
 
-        // Outer glow
-        const grd = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, r * 5 * nBoost)
-        grd.addColorStop(0, n.color === "red"
-          ? `rgba(255,30,50,${0.4 * pulse * nBoost})`
-          : `rgba(0,80,255,${0.4 * pulse * nBoost})`)
-        grd.addColorStop(1, "rgba(0,0,0,0)")
+        // Ядро
         ctx.beginPath()
-        ctx.arc(n.x, n.y, r * 5 * nBoost, 0, Math.PI * 2)
-        ctx.fillStyle = grd
-        ctx.fill()
-
-        // Core
-        ctx.beginPath()
-        ctx.arc(n.x, n.y, r * nBoost, 0, Math.PI * 2)
-        ctx.fillStyle = baseColor
-        ctx.shadowColor = glowColor
-        ctx.shadowBlur = 18 * pulse * nBoost
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2)
+        ctx.fillStyle = isRed ? "#ff2244" : "#0066ff"
+        if (config.shadowBlurBase > 0) {
+          ctx.shadowColor = isRed ? "#ff0033" : "#0055ff"
+          ctx.shadowBlur = config.shadowBlurBase * pulse
+        }
         ctx.fill()
         ctx.shadowBlur = 0
       }
 
-      // Рисуем ауру вокруг курсора
-      if (mouse.active) {
+      // Аура курсора — только high
+      if (tier === "high" && mouse.active) {
         const mgrd = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, MOUSE_RADIUS)
-        mgrd.addColorStop(0, "rgba(180,100,255,0.07)")
-        mgrd.addColorStop(0.5, "rgba(100,60,255,0.03)")
+        mgrd.addColorStop(0, "rgba(180,100,255,0.06)")
         mgrd.addColorStop(1, "rgba(0,0,0,0)")
         ctx.beginPath()
         ctx.arc(mouse.x, mouse.y, MOUSE_RADIUS, 0, Math.PI * 2)
         ctx.fillStyle = mgrd
         ctx.fill()
       }
-
-      frameId = requestAnimationFrame(draw)
     }
 
     ctx.fillStyle = "#000000"
     ctx.fillRect(0, 0, W, H)
-    draw()
+    frameId = requestAnimationFrame(draw)
 
-    // Mouse listeners
+    // Mouse / touch
+    const toCanvasCoords = (clientX: number, clientY: number) => {
+      const rect = canvas.getBoundingClientRect()
+      return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale }
+    }
     const onMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect()
-      mouseRef.current = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        active: true,
-      }
+      mouseRef.current = { ...toCanvasCoords(e.clientX, e.clientY), active: true }
     }
-    const onMouseLeave = () => {
-      mouseRef.current = { x: -9999, y: -9999, active: false }
-    }
+    const onMouseLeave = () => { mouseRef.current = { x: -9999, y: -9999, active: false } }
     const onTouchMove = (e: TouchEvent) => {
-      const rect = canvas.getBoundingClientRect()
-      const touch = e.touches[0]
-      mouseRef.current = {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top,
-        active: true,
-      }
+      mouseRef.current = { ...toCanvasCoords(e.touches[0].clientX, e.touches[0].clientY), active: true }
     }
-    const onTouchEnd = () => {
-      mouseRef.current = { x: -9999, y: -9999, active: false }
-    }
+    const onTouchEnd = () => { mouseRef.current = { x: -9999, y: -9999, active: false } }
 
     canvas.addEventListener("mousemove", onMouseMove)
     canvas.addEventListener("mouseleave", onMouseLeave)
@@ -284,8 +273,9 @@ export function NeuralBg() {
     const onResize = () => {
       W = canvas.offsetWidth
       H = canvas.offsetHeight
-      canvas.width = W
-      canvas.height = H
+      canvas.width = Math.floor(W * scale)
+      canvas.height = Math.floor(H * scale)
+      ctx.scale(scale, scale)
       ctx.fillStyle = "#000000"
       ctx.fillRect(0, 0, W, H)
     }
@@ -305,7 +295,7 @@ export function NeuralBg() {
     <canvas
       ref={canvasRef}
       className="absolute inset-0 w-full h-full"
-      style={{ display: "block", cursor: "none" }}
+      style={{ display: "block", imageRendering: "auto" }}
     />
   )
 }
