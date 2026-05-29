@@ -4,7 +4,6 @@ import { useMemo, useRef, useState, useEffect, Component, type ReactNode } from 
 import * as THREE from "three"
 import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
-import Icon from "@/components/ui/icon"
 
 class CanvasErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode; fallback?: ReactNode }) {
@@ -96,7 +95,7 @@ const Scene = ({ textures }: { textures: [THREE.Texture, THREE.Texture] }) => {
 
         float flow = 1.0 - smoothstep(0.0, 0.02, abs(depth - uProgress));
 
-        vec3 mask = vec3(dot * flow * 5.0, 0.0, dot * flow * 8.0);
+        vec3 mask = vec3(dot * flow * 10.0, 0.0, 0.0);
 
         vec3 final = baseColor.rgb + mask;
 
@@ -145,7 +144,7 @@ const CanvasWithTextures = () => {
       .catch(() => setError(true))
   }, [])
 
-  if (error) return <div className="absolute inset-0" style={{ background: "hsl(230 15% 7%)" }} />
+  if (error) return <div className="absolute inset-0 bg-black" />
   if (!textures) return null
 
   return (
@@ -153,75 +152,52 @@ const CanvasWithTextures = () => {
       flat
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       camera={{ position: [0, 0, 1] }}
-      style={{ background: "hsl(230,15%,7%)", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+      style={{ background: "#000000", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
     >
       <Scene textures={textures} />
     </Canvas>
   )
 }
 
-const stats = [
-  { value: "50K+", label: "Пользователей" },
-  { value: "1M+", label: "Генераций" },
-  { value: "5", label: "Типов контента" },
-]
-
 export const Hero3DWebGL = () => {
-  const titleWords = ["ИИ", "Кира"]
-  const subtitle = "Привет-привет! Я Кира. Рада видеть тебя здесь — самое время для крутых идей!"
+  const titleWords = "ИИ Кира".split(" ")
+  const subtitle = "Привет-привет! Я Кира. Рада видеть тебя здесь — самое время для крутых идей! ✨"
   const [visibleWords, setVisibleWords] = useState(0)
   const [subtitleVisible, setSubtitleVisible] = useState(false)
-  const [delays] = useState(() => titleWords.map(() => Math.random() * 0.07))
+  const [delays, setDelays] = useState<number[]>([])
+  const [subtitleDelay, setSubtitleDelay] = useState(0)
+
+  useEffect(() => {
+    setDelays(titleWords.map(() => Math.random() * 0.07))
+    setSubtitleDelay(Math.random() * 0.1)
+  }, [titleWords.length])
 
   useEffect(() => {
     if (visibleWords < titleWords.length) {
-      const timeout = setTimeout(() => setVisibleWords(visibleWords + 1), 500)
+      const timeout = setTimeout(() => setVisibleWords(visibleWords + 1), 600)
       return () => clearTimeout(timeout)
     } else {
-      const timeout = setTimeout(() => setSubtitleVisible(true), 700)
+      const timeout = setTimeout(() => setSubtitleVisible(true), 800)
       return () => clearTimeout(timeout)
     }
   }, [visibleWords, titleWords.length])
 
   return (
-    <div className="h-screen relative overflow-hidden" style={{ background: "hsl(230 15% 7%)" }}>
-      {/* Gradient overlays */}
+    <div className="h-screen bg-black relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none z-10">
-        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-[hsl(230_15%_7%)] to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[hsl(230_15%_7%)] to-transparent" />
-        <div className="absolute top-0 bottom-0 left-0 w-32 bg-gradient-to-r from-[hsl(230_15%_7%)] to-transparent" />
-        <div className="absolute top-0 bottom-0 right-0 w-32 bg-gradient-to-l from-[hsl(230_15%_7%)] to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
+        <div className="absolute top-0 bottom-0 left-0 w-32 bg-gradient-to-r from-black to-transparent" />
+        <div className="absolute top-0 bottom-0 right-0 w-32 bg-gradient-to-l from-black to-transparent" />
       </div>
 
-      {/* Floating orbs */}
-      <div className="absolute inset-0 pointer-events-none z-5 overflow-hidden">
-        <div className="orb orb-violet animate-orb1 w-96 h-96 -top-20 -left-20" style={{ opacity: 0.12 }} />
-        <div className="orb orb-cyan animate-orb2 w-80 h-80 -bottom-10 -right-10" style={{ opacity: 0.1 }} />
-      </div>
-
-      {/* Hero content */}
-      <div className="h-screen items-center w-full absolute z-[60] pointer-events-none px-6 md:px-10 flex justify-center flex-col">
-
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5 }}
-          className="mb-6 pointer-events-auto"
-        >
-          <span className="glass px-4 py-1.5 rounded-full text-xs font-medium text-violet-300 border border-violet-500/20 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-            ИИ-платформа нового поколения
-          </span>
-        </motion.div>
-
-        {/* Title */}
-        <div className="text-4xl md:text-6xl xl:text-7xl 2xl:text-8xl font-extrabold font-orbitron uppercase">
-          <div className="flex space-x-4 lg:space-x-6 overflow-hidden">
+      <div className="h-screen uppercase items-center w-full absolute z-[60] pointer-events-none px-10 flex justify-center flex-col">
+        <div className="text-3xl md:text-5xl xl:text-6xl 2xl:text-7xl font-extrabold font-orbitron">
+          <div className="flex space-x-2 lg:space-x-6 overflow-hidden text-white">
             {titleWords.map((word, index) => (
               <div
                 key={index}
-                className={`${index < visibleWords ? "fade-in" : ""} ${index === 1 ? "gradient-text" : "text-white"}`}
+                className={index < visibleWords ? "fade-in" : ""}
                 style={{
                   animationDelay: `${index * 0.13 + (delays[index] || 0)}s`,
                   opacity: index < visibleWords ? undefined : 0,
@@ -232,13 +208,11 @@ export const Hero3DWebGL = () => {
             ))}
           </div>
         </div>
-
-        {/* Subtitle */}
-        <div className="text-sm md:text-lg xl:text-xl mt-4 overflow-hidden text-white/60 max-w-2xl mx-auto text-center px-4 font-light">
+        <div className="text-xs md:text-xl xl:text-2xl 2xl:text-3xl mt-2 overflow-hidden text-white font-bold max-w-4xl mx-auto text-center px-4">
           <div
             className={subtitleVisible ? "fade-in-subtitle" : ""}
             style={{
-              animationDelay: `${titleWords.length * 0.13 + 0.2}s`,
+              animationDelay: `${titleWords.length * 0.13 + 0.2 + subtitleDelay}s`,
               opacity: subtitleVisible ? undefined : 0,
             }}
           >
@@ -246,72 +220,53 @@ export const Hero3DWebGL = () => {
           </div>
         </div>
 
-        {/* CTA */}
+        {/* CTA кнопки */}
         {subtitleVisible && (
           <motion.div
-            className="flex flex-wrap gap-3 justify-center mt-8 pointer-events-auto normal-case"
+            className="flex flex-wrap gap-4 justify-center mt-8 pointer-events-auto normal-case"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
           >
             <Link
               to="/create"
-              className="group px-7 py-3 rounded-xl font-semibold text-sm md:text-base transition-all duration-300 flex items-center gap-2 text-white"
-              style={{
-                background: "linear-gradient(135deg, #8b5cf6, #22d3ee)",
-                boxShadow: "0 0 30px rgba(139, 92, 246, 0.4)",
-              }}
+              className="px-7 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-105 text-sm md:text-base"
             >
               Начать создавать
-              <Icon name="ArrowRight" size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              to="/pricing"
-              className="px-7 py-3 rounded-xl font-semibold text-sm md:text-base text-white/80 hover:text-white transition-all duration-300 glass border border-white/10 hover:border-violet-500/40"
+            <a
+              href="#technology"
+              className="px-7 py-3 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-semibold rounded-xl transition-all duration-200 backdrop-blur-sm hover:scale-105 text-sm md:text-base"
             >
-              Тарифы
-            </Link>
+              Узнать больше
+            </a>
           </motion.div>
         )}
 
-        {/* Stats */}
+        {/* Статистика */}
         {subtitleVisible && (
           <motion.div
             className="flex flex-wrap gap-8 justify-center mt-12 pointer-events-none normal-case"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.8 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
           >
-            {stats.map((s, i) => (
+            {[
+              { value: "50K+", label: "Пользователей" },
+              { value: "1M+", label: "Генераций" },
+              { value: "5", label: "Типов контента" },
+            ].map((s) => (
               <div key={s.label} className="text-center">
-                <div className={`text-2xl md:text-3xl font-bold font-orbitron ${i === 0 ? "gradient-text" : i === 1 ? "text-cyan-400" : "text-violet-400"}`}>
-                  {s.value}
-                </div>
-                <div className="text-white/40 text-xs mt-1">{s.label}</div>
+                <div className="text-2xl md:text-3xl font-bold text-white font-orbitron">{s.value}</div>
+                <div className="text-gray-400 text-xs md:text-sm mt-1">{s.label}</div>
               </div>
             ))}
           </motion.div>
         )}
-
-        {/* Scroll hint */}
-        {subtitleVisible && (
-          <motion.div
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.8 }}
-          >
-            <div className="flex flex-col items-center gap-2 text-white/30">
-              <span className="text-xs">Прокрути вниз</span>
-              <Icon name="ChevronDown" size={16} className="animate-bounce" />
-            </div>
-          </motion.div>
-        )}
       </div>
 
-      {/* 3D canvas */}
       <div className="absolute inset-0">
-        <CanvasErrorBoundary fallback={<div className="absolute inset-0" style={{ background: "hsl(230 15% 7%)" }} />}>
+        <CanvasErrorBoundary fallback={<div className="absolute inset-0 bg-black" />}>
           <CanvasWithTextures />
         </CanvasErrorBoundary>
       </div>
