@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useEffect, Component, type ReactNode } from 
 import * as THREE from "three"
 import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
+import { NeuralBg } from "@/components/neural-bg"
 
 class CanvasErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode; fallback?: ReactNode }) {
@@ -184,11 +185,11 @@ export const Hero3DWebGL = () => {
 
   return (
     <div className="h-screen bg-black relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none z-10">
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
-        <div className="absolute top-0 bottom-0 left-0 w-32 bg-gradient-to-r from-black to-transparent" />
-        <div className="absolute top-0 bottom-0 right-0 w-32 bg-gradient-to-l from-black to-transparent" />
+      <div className="absolute inset-0 pointer-events-none z-[5]">
+        <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-black/80 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/80 to-transparent" />
+        <div className="absolute top-0 bottom-0 left-0 w-40 bg-gradient-to-r from-black/60 to-transparent" />
+        <div className="absolute top-0 bottom-0 right-0 w-40 bg-gradient-to-l from-black/60 to-transparent" />
       </div>
 
       <div className="h-screen uppercase items-center w-full absolute z-[60] pointer-events-none px-10 flex justify-center flex-col">
@@ -265,8 +266,14 @@ export const Hero3DWebGL = () => {
         )}
       </div>
 
-      <div className="absolute inset-0">
-        <CanvasErrorBoundary fallback={<div className="absolute inset-0 bg-black" />}>
+      {/* Neural network animation background */}
+      <div className="absolute inset-0 z-0">
+        <NeuralBg />
+      </div>
+
+      {/* WebGL depth effect overlay (subtle, on top of neural) */}
+      <div className="absolute inset-0 z-[2] opacity-30">
+        <CanvasErrorBoundary fallback={null}>
           <CanvasWithTextures />
         </CanvasErrorBoundary>
       </div>
