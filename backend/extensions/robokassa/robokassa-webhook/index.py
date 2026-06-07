@@ -2,6 +2,9 @@ import json
 import os
 import hashlib
 import psycopg2
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from urllib.parse import parse_qs
 
 
@@ -9,6 +12,72 @@ def calculate_signature(*args) -> str:
     """Создание MD5 подписи по документации Robokassa"""
     joined = ':'.join(str(arg) for arg in args)
     return hashlib.md5(joined.encode()).hexdigest().upper()
+
+
+def send_payment_email(to_email: str, name: str, order_number: str, amount: str):
+    host = os.environ.get("SMTP_HOST", "")
+    port = int(os.environ.get("SMTP_PORT", "465"))
+    user = os.environ.get("SMTP_USER", "")
+    password = os.environ.get("SMTP_PASSWORD", "")
+    from_name = os.environ.get("SMTP_FROM_NAME", "ИИ КИРА")
+
+    if not host or not user or not password:
+        print("[EMAIL] SMTP не настроен")
+        return
+
+    display = name or to_email.split("@")[0]
+    html = f"""<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 20px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#111;border-radius:16px;overflow:hidden;border:1px solid #222;">
+<tr><td style="background:linear-gradient(135deg,#1a0000,#000820);padding:28px 40px;text-align:center;">
+  <div style="font-size:26px;font-weight:900;letter-spacing:3px;color:#fff;">ИИ <span style="color:#ef4444;">КИРА</span></div>
+</td></tr>
+<tr><td style="padding:32px 40px;">
+  <h2 style="margin:0 0 14px;color:#fff;font-size:21px;">Оплата прошла успешно ✅</h2>
+  <p style="color:#aaa;font-size:14px;line-height:1.7;margin:0 0 20px;">
+    Привет, {display}! Ваш платёж успешно обработан. Спасибо, что выбрали <strong style="color:#ef4444;">ИИ КИРА</strong>!
+  </p>
+  <div style="background:#001a0a;border:1px solid #16a34a;border-radius:12px;padding:20px;margin:0 0 24px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="color:#666;font-size:13px;padding-bottom:8px;">Номер заказа</td>
+        <td style="color:#fff;font-size:13px;font-weight:bold;text-align:right;padding-bottom:8px;">#{order_number}</td>
+      </tr>
+      <tr>
+        <td style="color:#666;font-size:13px;">Сумма оплаты</td>
+        <td style="color:#22c55e;font-size:18px;font-weight:900;text-align:right;">{amount} ₽</td>
+      </tr>
+    </table>
+  </div>
+  <a href="https://kira.ai" style="display:inline-block;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;text-decoration:none;padding:13px 30px;border-radius:10px;font-weight:bold;font-size:14px;">Перейти в кабинет →</a>
+  <p style="margin:22px 0 0;color:#555;font-size:12px;">Если у вас вопросы — обратитесь в поддержку.</p>
+</td></tr>
+<tr><td style="background:#0d0d0d;padding:18px 40px;text-align:center;border-top:1px solid #1e1e1e;">
+  <p style="margin:0;font-size:12px;color:#444;">© 2024 ИИ КИРА · Это автоматическое письмо</p>
+</td></tr>
+</table></td></tr></table></body></html>"""
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "Оплата прошла успешно — ИИ КИРА"
+    msg["From"] = f"{from_name} <{user}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html, "html", "utf-8"))
+
+    try:
+        if port == 465:
+            with smtplib.SMTP_SSL(host, port, timeout=10) as srv:
+                srv.login(user, password)
+                srv.sendmail(user, to_email, msg.as_string())
+        else:
+            with smtplib.SMTP(host, port, timeout=10) as srv:
+                srv.starttls()
+                srv.login(user, password)
+                srv.sendmail(user, to_email, msg.as_string())
+        print(f"[EMAIL] Письмо об оплате отправлено → {to_email}")
+    except Exception as e:
+        print(f"[EMAIL] Ошибка: {e}")
 
 
 def get_db_connection():
@@ -95,7 +164,19 @@ def handler(event: dict, context) -> dict:
     cur.close()
     conn.close()
 
-    # TODO: Отправить уведомление (email, telegram) после успешной оплаты
-    # order_id, order_number, user_email = result
+    order_id, order_number, user_email = result
+
+    # Получаем имя пользователя и сумму
+    conn2 = get_db_connection()
+    cur2 = conn2.cursor()
+    cur2.execute("SELECT u.name, o.total_amount FROM orders o LEFT JOIN users u ON u.email = o.user_email WHERE o.id = %s", (order_id,))
+    extra = cur2.fetchone()
+    conn2.close()
+
+    user_name = extra[0] if extra and extra[0] else ""
+    amount = str(int(extra[1])) if extra and extra[1] else "—"
+
+    if user_email:
+        send_payment_email(user_email, user_name, str(order_number), amount)
 
     return {'statusCode': 200, 'headers': HEADERS, 'body': f'OK{inv_id}', 'isBase64Encoded': False}

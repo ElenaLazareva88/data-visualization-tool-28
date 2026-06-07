@@ -10,6 +10,9 @@ from datetime import datetime, timedelta
 import psycopg2
 import urllib.request
 import urllib.parse
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 SCHEMA = os.environ.get("MAIN_DB_SCHEMA", "public")
 
@@ -31,6 +34,86 @@ TYPE_LABELS = {
 
 def get_db():
     return psycopg2.connect(os.environ["DATABASE_URL"])
+
+
+def send_email_async(to_email: str, subject: str, html: str):
+    """Отправляет email через SMTP. Не бросает исключений — только логирует."""
+    host = os.environ.get("SMTP_HOST", "")
+    port = int(os.environ.get("SMTP_PORT", "465"))
+    user = os.environ.get("SMTP_USER", "")
+    password = os.environ.get("SMTP_PASSWORD", "")
+    from_name = os.environ.get("SMTP_FROM_NAME", "ИИ КИРА")
+
+    if not host or not user or not password:
+        print("[EMAIL] SMTP не настроен, письмо пропущено")
+        return
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{from_name} <{user}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html, "html", "utf-8"))
+
+    try:
+        if port == 465:
+            with smtplib.SMTP_SSL(host, port, timeout=10) as srv:
+                srv.login(user, password)
+                srv.sendmail(user, to_email, msg.as_string())
+        else:
+            with smtplib.SMTP(host, port, timeout=10) as srv:
+                srv.starttls()
+                srv.login(user, password)
+                srv.sendmail(user, to_email, msg.as_string())
+        print(f"[EMAIL] Отправлено '{subject}' → {to_email}")
+    except Exception as e:
+        print(f"[EMAIL] Ошибка: {e}")
+
+
+def make_email_base(title: str, content: str) -> str:
+    return f"""<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"/><title>{title}</title></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 20px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background:#111;border-radius:16px;overflow:hidden;border:1px solid #222;">
+<tr><td style="background:linear-gradient(135deg,#1a0000,#000820);padding:28px 40px;text-align:center;">
+  <div style="font-size:26px;font-weight:900;letter-spacing:3px;color:#fff;">ИИ <span style="color:#ef4444;">КИРА</span></div>
+  <div style="font-size:11px;color:#555;letter-spacing:2px;margin-top:4px;">ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ НОВОГО ПОКОЛЕНИЯ</div>
+</td></tr>
+<tr><td style="padding:32px 40px;">{content}</td></tr>
+<tr><td style="background:#0d0d0d;padding:18px 40px;text-align:center;border-top:1px solid #1e1e1e;">
+  <p style="margin:0;font-size:12px;color:#444;">© 2024 ИИ КИРА · Это автоматическое письмо</p>
+</td></tr>
+</table></td></tr></table></body></html>"""
+
+
+def build_welcome_email(name: str, email: str) -> str:
+    display = name or email.split("@")[0]
+    content = f"""<h2 style="margin:0 0 14px;color:#fff;font-size:21px;">Добро пожаловать, {display}!</h2>
+<p style="color:#aaa;font-size:14px;line-height:1.7;margin:0 0 20px;">
+  Ваш аккаунт в <strong style="color:#ef4444;">ИИ КИРА</strong> успешно создан.
+  Вам доступны инструменты для создания музыки, видео, фото и текста с помощью ИИ.
+</p>
+<div style="background:#1a1a1a;border-radius:10px;padding:16px 20px;margin:0 0 22px;border-left:3px solid #ef4444;">
+  <p style="margin:0;color:#666;font-size:12px;">Ваш аккаунт</p>
+  <p style="margin:6px 0 0;color:#fff;font-size:14px;font-weight:bold;">{email}</p>
+</div>
+<a href="https://kira.ai" style="display:inline-block;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;text-decoration:none;padding:13px 30px;border-radius:10px;font-weight:bold;font-size:14px;">Начать создавать →</a>
+<p style="margin:22px 0 0;color:#555;font-size:12px;">Если вы не регистрировались — проигнорируйте письмо.</p>"""
+    return make_email_base("Добро пожаловать в ИИ КИРА", content)
+
+
+def build_reset_email(name: str, email: str, code: str) -> str:
+    display = name or email.split("@")[0]
+    content = f"""<h2 style="margin:0 0 14px;color:#fff;font-size:21px;">Сброс пароля</h2>
+<p style="color:#aaa;font-size:14px;line-height:1.7;margin:0 0 20px;">
+  Привет, {display}! Вот код для сброса пароля аккаунта <strong style="color:#fff;">{email}</strong>:
+</p>
+<div style="background:#1a0000;border:2px solid #ef4444;border-radius:12px;padding:22px;text-align:center;margin:0 0 20px;">
+  <span style="font-size:38px;font-weight:900;letter-spacing:10px;color:#ef4444;font-family:monospace;">{code}</span>
+</div>
+<p style="color:#666;font-size:13px;margin:0 0 16px;">⏱ Код действителен <strong style="color:#aaa;">30 минут</strong>. Никому не сообщайте его.</p>
+<p style="color:#555;font-size:12px;margin:0;">Если вы не запрашивали сброс — просто проигнорируйте это письмо.</p>"""
+    return make_email_base("Сброс пароля — ИИ КИРА", content)
 
 
 def q(table: str) -> str:
@@ -179,6 +262,9 @@ def handler(event: dict, context) -> dict:
                 (user_id, token, expires)
             )
             conn.commit()
+
+            # Приветственное письмо
+            send_email_async(email, "Добро пожаловать в ИИ КИРА!", build_welcome_email(name, email))
 
             return {
                 "statusCode": 200,
@@ -443,10 +529,18 @@ def handler(event: dict, context) -> dict:
             )
             conn.commit()
 
+            # Получаем имя пользователя для письма
+            cur.execute(f"SELECT name FROM {q('users')} WHERE id = %s", (user_id,))
+            name_row = cur.fetchone()
+            user_name = name_row[0] if name_row else ""
+
+            # Отправляем код на email
+            send_email_async(email, "Код сброса пароля — ИИ КИРА", build_reset_email(user_name, email, code))
+
             return {
                 "statusCode": 200,
                 "headers": cors_headers(),
-                "body": json.dumps({"ok": True, "code": code}),
+                "body": json.dumps({"ok": True}),
                 "isBase64Encoded": False,
             }
 
