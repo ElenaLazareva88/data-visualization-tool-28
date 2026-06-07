@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -79,6 +79,63 @@ export default function SupportPage() {
   const [ticketError, setTicketError] = useState("")
   const [hintIndex, setHintIndex] = useState(0)
 
+  // Мои обращения
+  interface Ticket {
+    id: number
+    subject: string
+    status: string
+    priority: string
+    created_at: string
+    updated_at: string
+  }
+  const [myTickets, setMyTickets] = useState<Ticket[]>([])
+  const [ticketsLoading, setTicketsLoading] = useState(false)
+  const [ticketsLoaded, setTicketsLoaded] = useState(false)
+
+  const loadMyTickets = async () => {
+    const token = getToken()
+    if (!token) return
+    setTicketsLoading(true)
+    try {
+      const res = await fetch(`${AUTH_URL}/tickets`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (res.ok) setMyTickets(data.tickets || [])
+    } catch {
+      // silent
+    } finally {
+      setTicketsLoading(false)
+      setTicketsLoaded(true)
+    }
+  }
+
+  // Загружаем при переходе на вкладку "my"
+  useEffect(() => {
+    if (ticketsLoaded) return
+    if (user) loadMyTickets()
+  }, [])
+
+  const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+    new:        { label: "Новый",       color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+    open:       { label: "Открыт",      color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
+    in_progress:{ label: "В работе",    color: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
+    resolved:   { label: "Решён",       color: "bg-green-500/15 text-green-400 border-green-500/30" },
+    closed:     { label: "Закрыт",      color: "bg-muted/40 text-muted-foreground border-border" },
+  }
+
+  const PRIORITY_LABELS: Record<string, { label: string; color: string }> = {
+    high:   { label: "Высокий", color: "text-red-400" },
+    normal: { label: "Обычный", color: "text-muted-foreground" },
+    low:    { label: "Низкий",  color: "text-muted-foreground" },
+  }
+
+  const formatDate = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })
+    } catch { return iso }
+  }
+
   const sendChatMessage = () => {
     if (!chatInput.trim()) return
     const userMsg = { from: "user", text: chatInput, time: "сейчас" }
@@ -117,6 +174,9 @@ export default function SupportPage() {
       }
       setTicketId(data.ticket_id)
       setTicketSent(true)
+      // Сбрасываем кеш, чтобы новый тикет отобразился в "Мои обращения"
+      setTicketsLoaded(false)
+      if (user) loadMyTickets()
     } catch {
       setTicketError("Нет соединения. Проверьте интернет и попробуйте снова.")
     } finally {
@@ -137,13 +197,27 @@ export default function SupportPage() {
         </div>
 
         <Tabs defaultValue="chat">
-          <TabsList className="bg-card border border-border mb-6">
+          <TabsList className="bg-card border border-border mb-6 flex-wrap h-auto gap-1">
             <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground">
               <Icon name="MessageCircle" size={14} className="mr-2" />Чат поддержки
             </TabsTrigger>
             <TabsTrigger value="ticket" className="data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground">
               <Icon name="Mail" size={14} className="mr-2" />Написать тикет
             </TabsTrigger>
+            {user && (
+              <TabsTrigger
+                value="my"
+                className="data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground"
+                onClick={() => { if (!ticketsLoaded) loadMyTickets() }}
+              >
+                <Icon name="Inbox" size={14} className="mr-2" />Мои обращения
+                {myTickets.filter(t => t.status !== "closed" && t.status !== "resolved").length > 0 && (
+                  <span className="ml-2 bg-primary/30 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    {myTickets.filter(t => t.status !== "closed" && t.status !== "resolved").length}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
             <TabsTrigger value="faq" className="data-[state=active]:bg-primary data-[state=active]:text-white text-muted-foreground">
               <Icon name="HelpCircle" size={14} className="mr-2" />База знаний (FAQ)
             </TabsTrigger>
@@ -336,6 +410,94 @@ export default function SupportPage() {
               )}
             </div>
           </TabsContent>
+
+          {/* Мои обращения */}
+          {user && (
+            <TabsContent value="my">
+              <div className="max-w-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-white font-semibold text-base flex items-center gap-2">
+                    <Icon name="Inbox" size={18} className="text-primary" />
+                    Мои обращения
+                  </h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadMyTickets}
+                    disabled={ticketsLoading}
+                    className="border-border text-muted-foreground hover:text-white text-xs"
+                  >
+                    <Icon name={ticketsLoading ? "Loader2" : "RefreshCw"} size={13} className={`mr-1.5 ${ticketsLoading ? "animate-spin" : ""}`} />
+                    Обновить
+                  </Button>
+                </div>
+
+                {ticketsLoading && !myTickets.length ? (
+                  <div className="flex items-center justify-center py-16 text-muted-foreground gap-3">
+                    <Icon name="Loader2" size={20} className="animate-spin" />
+                    <span className="text-sm">Загружаем обращения...</span>
+                  </div>
+                ) : myTickets.length === 0 ? (
+                  <Card className="bg-card border-border">
+                    <CardContent className="py-14 text-center">
+                      <div className="w-14 h-14 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4">
+                        <Icon name="InboxIcon" size={28} className="text-muted-foreground" fallback="Inbox" />
+                      </div>
+                      <p className="text-white font-medium mb-1">Обращений пока нет</p>
+                      <p className="text-muted-foreground text-sm">Если возникнет вопрос — напишите нам во вкладке «Написать тикет»</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-3">
+                    {myTickets.map((ticket) => {
+                      const st = STATUS_LABELS[ticket.status] || { label: ticket.status, color: "bg-muted/40 text-muted-foreground border-border" }
+                      const pr = PRIORITY_LABELS[ticket.priority] || PRIORITY_LABELS.normal
+                      return (
+                        <Card key={ticket.id} className="bg-card border-border hover:border-primary/40 transition-colors">
+                          <CardContent className="py-4 px-5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                  <span className="text-muted-foreground text-xs font-mono">#{ticket.id}</span>
+                                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${st.color}`}>
+                                    {st.label}
+                                  </span>
+                                  {ticket.priority === "high" && (
+                                    <span className="flex items-center gap-1 text-[11px] text-red-400">
+                                      <Icon name="AlertCircle" size={11} />
+                                      Высокий приоритет
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-white text-sm font-medium truncate">{ticket.subject}</p>
+                                <p className="text-muted-foreground text-xs mt-1">
+                                  Создан {formatDate(ticket.created_at)}
+                                  {ticket.updated_at !== ticket.created_at && (
+                                    <> · обновлён {formatDate(ticket.updated_at)}</>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0">
+                                {(ticket.status === "resolved" || ticket.status === "closed") ? (
+                                  <Icon name="CheckCircle2" size={20} className="text-green-500" />
+                                ) : (
+                                  <Icon name="Clock" size={20} className="text-yellow-500/70" />
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+
+                    <p className="text-muted-foreground text-xs text-center pt-2">
+                      Показаны последние {myTickets.length} обращений
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          )}
 
           {/* FAQ */}
           <TabsContent value="faq">
