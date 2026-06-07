@@ -943,6 +943,79 @@ def handler(event: dict, context) -> dict:
                 "isBase64Encoded": False,
             }
 
+        # POST /auth/ticket — создать тикет поддержки
+        elif method == "POST" and "/ticket" in path:
+            email = body.get("email", "").strip().lower()
+            topic = body.get("topic", "").strip()
+            message = body.get("message", "").strip()
+
+            if not email or not topic or not message:
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "email, topic и message обязательны"}), "isBase64Encoded": False}
+
+            if len(message) < 10:
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "Описание слишком короткое — минимум 10 символов"}), "isBase64Encoded": False}
+
+            subject = f"[{topic}] {email}"
+            priority = "high" if any(w in topic.lower() for w in ["оплат", "платёж", "платеж"]) else "normal"
+
+            # Определяем user_id если пользователь авторизован
+            user_id = None
+            token_hdr = (event.get("headers") or {}).get("X-Authorization", "")
+            tok = token_hdr.replace("Bearer ", "").strip()
+            if tok:
+                row_u = get_user_by_token(cur, tok)
+                if row_u:
+                    user_id = row_u[0]
+
+            cur.execute(
+                f"INSERT INTO {q('support_tickets')} (user_id, subject, body, status, priority) "
+                f"VALUES (%s, %s, %s, 'new', %s) RETURNING id, created_at",
+                (user_id, subject, message, priority)
+            )
+            ticket_id, created_at = cur.fetchone()
+
+            cur.execute(
+                f"INSERT INTO {q('ticket_messages')} (ticket_id, user_id, body, is_internal) VALUES (%s, %s, %s, FALSE)",
+                (ticket_id, user_id, message)
+            )
+            conn.commit()
+
+            return {
+                "statusCode": 200,
+                "headers": cors_headers(),
+                "body": json.dumps({"ok": True, "ticket_id": ticket_id, "created_at": str(created_at)}),
+                "isBase64Encoded": False,
+            }
+
+        # GET /auth/tickets — список своих тикетов (для авторизованных)
+        elif method == "GET" and "/tickets" in path:
+            token_hdr = (event.get("headers") or {}).get("X-Authorization", "")
+            tok = token_hdr.replace("Bearer ", "").strip()
+            if not tok:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Необходима авторизация"}), "isBase64Encoded": False}
+
+            row_u = get_user_by_token(cur, tok)
+            if not row_u:
+                return {"statusCode": 401, "headers": cors_headers(), "body": json.dumps({"error": "Сессия истекла"}), "isBase64Encoded": False}
+
+            uid = row_u[0]
+            cur.execute(
+                f"SELECT id, subject, status, priority, created_at, updated_at "
+                f"FROM {q('support_tickets')} WHERE user_id = %s ORDER BY created_at DESC LIMIT 20",
+                (uid,)
+            )
+            tickets = [
+                {"id": r[0], "subject": r[1], "status": r[2], "priority": r[3],
+                 "created_at": str(r[4]), "updated_at": str(r[5])}
+                for r in cur.fetchall()
+            ]
+            return {
+                "statusCode": 200,
+                "headers": cors_headers(),
+                "body": json.dumps({"tickets": tickets}),
+                "isBase64Encoded": False,
+            }
+
         else:
             return {"statusCode": 404, "headers": cors_headers(), "body": json.dumps({"error": "Not found", "method": method, "path": path}), "isBase64Encoded": False}
 

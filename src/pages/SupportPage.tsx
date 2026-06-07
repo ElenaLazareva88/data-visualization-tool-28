@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import Icon from "@/components/ui/icon"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
+import { AUTH_URL, getToken, getUser } from "@/lib/auth"
 
 const FAQ_ITEMS = [
   {
@@ -61,12 +62,21 @@ const TOPICS = [
 ]
 
 export default function SupportPage() {
+  const user = getUser()
+
   const [chatMessages, setChatMessages] = useState([
     { from: "support", text: "Привет! Я — Кира, ИИ-ассистент ИИ Кира. Чем могу помочь? Задайте вопрос — отвечу мгновенно или передам живому специалисту.", time: "сейчас" },
   ])
   const [chatInput, setChatInput] = useState("")
-  const [ticketForm, setTicketForm] = useState({ email: "", topic: "", message: "" })
+  const [ticketForm, setTicketForm] = useState({
+    email: user?.email || "",
+    topic: "",
+    message: "",
+  })
   const [ticketSent, setTicketSent] = useState(false)
+  const [ticketId, setTicketId] = useState<number | null>(null)
+  const [ticketLoading, setTicketLoading] = useState(false)
+  const [ticketError, setTicketError] = useState("")
   const [hintIndex, setHintIndex] = useState(0)
 
   const sendChatMessage = () => {
@@ -81,9 +91,37 @@ export default function SupportPage() {
     setChatInput("")
   }
 
-  const sendTicket = (e: React.FormEvent) => {
+  const sendTicket = async (e: React.FormEvent) => {
     e.preventDefault()
-    setTicketSent(true)
+    setTicketError("")
+    setTicketLoading(true)
+
+    const token = getToken()
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (token) headers["Authorization"] = `Bearer ${token}`
+
+    try {
+      const res = await fetch(`${AUTH_URL}/ticket`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          email: ticketForm.email,
+          topic: ticketForm.topic,
+          message: ticketForm.message,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setTicketError(data.error || "Ошибка отправки")
+        return
+      }
+      setTicketId(data.ticket_id)
+      setTicketSent(true)
+    } catch {
+      setTicketError("Нет соединения. Проверьте интернет и попробуйте снова.")
+    } finally {
+      setTicketLoading(false)
+    }
   }
 
   return (
@@ -214,10 +252,19 @@ export default function SupportPage() {
                       <Icon name="CheckCircle" size={32} className="text-primary" />
                     </div>
                     <h3 className="text-white font-bold text-xl mb-2">Тикет отправлен!</h3>
-                    <p className="text-muted-foreground">Мы ответим на {ticketForm.email} в течение 24 часов</p>
+                    {ticketId && (
+                      <p className="text-muted-foreground text-sm mb-1">
+                        Номер обращения: <span className="text-white font-mono font-bold">#{ticketId}</span>
+                      </p>
+                    )}
+                    <p className="text-muted-foreground text-sm">Ответим на {ticketForm.email} в течение 24 часов</p>
                     <Button
                       className="mt-6 bg-primary hover:bg-primary/90 text-white"
-                      onClick={() => { setTicketSent(false); setTicketForm({ email: "", topic: "", message: "" }) }}
+                      onClick={() => {
+                        setTicketSent(false)
+                        setTicketId(null)
+                        setTicketForm({ email: user?.email || "", topic: "", message: "" })
+                      }}
                     >
                       Отправить ещё
                     </Button>
@@ -266,8 +313,22 @@ export default function SupportPage() {
                           required
                         />
                       </div>
-                      <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white">
-                        <Icon name="Send" size={16} className="mr-2" />Отправить тикет
+                      {ticketError && (
+                        <p className="text-red-400 text-sm flex items-center gap-2">
+                          <Icon name="AlertCircle" size={14} />
+                          {ticketError}
+                        </p>
+                      )}
+                      <Button
+                        type="submit"
+                        disabled={ticketLoading || !ticketForm.topic}
+                        className="w-full bg-primary hover:bg-primary/90 text-white disabled:opacity-50"
+                      >
+                        {ticketLoading ? (
+                          <><Icon name="Loader2" size={16} className="mr-2 animate-spin" />Отправляем...</>
+                        ) : (
+                          <><Icon name="Send" size={16} className="mr-2" />Отправить тикет</>
+                        )}
                       </Button>
                     </form>
                   </CardContent>
