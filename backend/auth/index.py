@@ -6,6 +6,8 @@ import os
 import secrets
 import hashlib
 import hmac
+import uuid
+import ssl
 from datetime import datetime, timedelta
 import psycopg2
 import urllib.request
@@ -158,6 +160,54 @@ def get_user_by_token(cur, token: str):
         (token,)
     )
     return cur.fetchone()
+
+
+GIGACHAT_SYSTEM_PROMPT = (
+    "Ты — Кира, умный ИИ-ассистент платформы «ИИ КИРА». "
+    "Помогаешь пользователям создавать музыку, видео, фото и текст с помощью искусственного интеллекта. "
+    "Отвечаешь на русском языке, коротко и по делу. "
+    "Если пользователь спрашивает про генерацию контента — подсказываешь как лучше составить промпт. "
+    "Если вопрос не по теме — всё равно отвечаешь дружелюбно и полезно."
+)
+
+
+def gigachat_get_token(api_key: str) -> str:
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    data = urllib.parse.urlencode({"scope": "GIGACHAT_API_PERS"}).encode()
+    req = urllib.request.Request(
+        "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
+        data=data,
+        headers={
+            "Authorization": f"Basic {api_key}",
+            "RqUID": str(uuid.uuid4()),
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, context=ctx, timeout=15) as resp:
+        return json.loads(resp.read().decode())["access_token"]
+
+
+def gigachat_chat(token: str, messages: list) -> str:
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    payload = json.dumps({
+        "model": "GigaChat",
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 1024,
+    }).encode()
+    req = urllib.request.Request(
+        "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
+        data=payload,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
+        return json.loads(resp.read().decode())["choices"][0]["message"]["content"]
 
 
 def handler(event: dict, context) -> dict:
@@ -984,6 +1034,40 @@ def handler(event: dict, context) -> dict:
                 "statusCode": 200,
                 "headers": cors_headers(),
                 "body": json.dumps({"ok": True, "ticket_id": ticket_id, "created_at": str(created_at)}),
+                "isBase64Encoded": False,
+            }
+
+        # POST /auth/chat — чат с Кирой (GigaChat)
+        elif method == "POST" and "/chat" in path:
+            user_message = body.get("message", "").strip()
+            history = body.get("history", [])
+
+            if not user_message:
+                return {"statusCode": 400, "headers": cors_headers(), "body": json.dumps({"error": "Сообщение не может быть пустым"}), "isBase64Encoded": False}
+
+            api_key = os.environ.get("GIGACHAT_API_KEY", "")
+            if not api_key:
+                return {"statusCode": 500, "headers": cors_headers(), "body": json.dumps({"error": "ИИ не настроен"}), "isBase64Encoded": False}
+
+            messages = [{"role": "system", "content": GIGACHAT_SYSTEM_PROMPT}]
+            for msg in history[-20:]:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                if role in ("user", "assistant") and content:
+                    messages.append({"role": role, "content": content})
+            messages.append({"role": "user", "content": user_message})
+
+            try:
+                access_token = gigachat_get_token(api_key)
+                reply = gigachat_chat(access_token, messages)
+            except Exception as e:
+                print(f"[GIGACHAT ERROR] {type(e).__name__}: {e}")
+                return {"statusCode": 502, "headers": cors_headers(), "body": json.dumps({"error": "Не удалось получить ответ от ИИ. Попробуйте позже."}), "isBase64Encoded": False}
+
+            return {
+                "statusCode": 200,
+                "headers": cors_headers(),
+                "body": json.dumps({"reply": reply}, ensure_ascii=False),
                 "isBase64Encoded": False,
             }
 
